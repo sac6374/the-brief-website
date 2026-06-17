@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subscribe — The Brief</title>
+<meta name="description" content="Subscribe to The Brief — free daily market intelligence for finance students and early-career professionals. Weekday mornings. Under five minutes.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="site-nav">
+  <a href="index.html" class="nav-brand">The Brief</a>
+  <a href="archive.html">Archive</a>
+  <a href="about.html">About</a>
+  <a href="subscribe.html" class="active">Subscribe</a>
+</nav>
+
+<div class="masthead">
+  <div class="masthead-eyebrow">Daily Market Intelligence</div>
+  <div class="masthead-title">The Brief</div>
+  <div class="masthead-rule">
+    <span class="masthead-tagline">Free. Weekday mornings. Under five minutes.</span>
+  </div>
+</div>
+
+<div class="wrap-narrow">
+
+  <div class="section first">
+    <div class="section-label">Subscribe</div>
+    <h2>Start every market day with an edge.</h2>
+    <p>The Brief lands in your inbox each weekday morning with exactly what moved markets, why it matters, and what to say about it in your next interview or client conversation.</p>
+    <p>Free. No spam. Built for finance students and early-career professionals.</p>
+  </div>
+
+  <div class="section" style="border-top:2.5px solid var(--ink)">
+    <div style="max-width:440px">
+      <!-- Replace YOUR_FORM_ID with your Formspree form ID after creating a free account at formspree.io -->
+      <form class="subscribe-form" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+        <input type="email" name="email" placeholder="your@email.com" required>
+        <input type="hidden" name="_subject" value="New Brief subscriber">
+        <input type="hidden" name="_next" value="https://yoursite.pages.dev/subscribe.html?thanks=1">
+        <button type="submit">Subscribe — It's Free</button>
+        <p class="form-note">No spam. Unsubscribe any time. Read our <a href="about.html" style="color:var(--muted)">editorial standards</a>.</p>
+      </form>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">What You'll Get</div>
+    <h2>Every weekday morning.</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-card-label">Real Market Data</div>
+        <p>Sourced from real market events — not recycled summaries or invented headlines. Every issue cites its sources.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-label">Career-Ready Analysis</div>
+        <p>Written for the interview room and the trading desk — not for a general audience. Specific to where you're going.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-label">WM / Private Banking Focus</div>
+        <p>A dedicated Wealth Management take in every issue. Understand markets the way a client-facing professional needs to.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-label">The Chain of Logic</div>
+        <p>Event → reaction → second-order effects → your career. Follow the reasoning, not just the headlines.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div style="background:var(--paper-2);border-top:2.5px solid var(--ink);border-bottom:1px solid var(--rule);padding:24px 28px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">While you're here</div>
+      <p style="font-size:15px;line-height:1.76;margin-bottom:16px">Read the latest issue to see exactly what you're signing up for.</p>
+      <a href="briefs/2026-04-28.html" class="btn btn-outline">Read the Latest Brief →</a>
+    </div>
+  </div>
+
+</div><!-- /wrap-narrow -->
+
+<footer class="site-footer">
+  The Brief &nbsp;·&nbsp; Daily Market Intelligence<br>
+  <a href="about.html">About</a> &nbsp;·&nbsp; <a href="archive.html">Archive</a> &nbsp;·&nbsp; <a href="subscribe.html">Subscribe</a><br>
+  Not investment advice &nbsp;·&nbsp; For educational purposes only
+</footer>
+
+</body>
+</html>
