@@ -101,6 +101,7 @@ JSON SCHEMA — ALL FIELDS REQUIRED
     {"label": "WTI Crude", "value": "$72.18", "change": "−1.2%", "direction": "down", "note": ""},
     {"label": "VIX", "value": "13.4", "change": "−8.3%", "direction": "down", "note": "calm"}
   ],
+  "tags": ["Short topic label e.g. Fed Watch", "Rates", "Wealth Management"],
   "homepage_teaser": "2–3 sentences for homepage card. Different wording from opening_summary.",
   "archive_teaser": "2–3 sentences for archive list. More compressed. Different wording.",
   "linkedin_post": "3–5 professional sentences. End with: {{URL}}",

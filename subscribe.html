@@ -11,42 +11,46 @@
 
 <nav class="site-nav">
   <a href="index.html" class="nav-brand">The Brief</a>
-  <a href="archive.html">Archive</a>
-  <a href="about.html">About</a>
-  <a href="subscribe.html" class="active">Subscribe</a>
+  <div class="nav-links">
+    <a href="archive.html" class="nav-hide-mobile">Archive</a>
+    <a href="about.html" class="nav-hide-mobile">About</a>
+    <a href="subscribe.html" class="nav-cta active">Subscribe Free</a>
+  </div>
 </nav>
 
-<div class="masthead">
-  <div class="masthead-eyebrow">Daily Market Intelligence</div>
-  <div class="masthead-title">The Brief</div>
-  <div class="masthead-rule">
-    <span class="masthead-tagline">Free. Weekday mornings. Under five minutes.</span>
-  </div>
+<div class="page-header">
+  <div class="page-header-eyebrow">Free. Weekday mornings. Under five minutes.</div>
+  <div class="page-header-title">Get smarter before the market opens.</div>
+  <div class="page-header-sub">Markets explained through the lens of rates, sectors, and client conversations.</div>
 </div>
 
-<div class="wrap-narrow">
+<section class="section section-first">
+  <div class="wrap-narrow">
 
-  <div class="section first">
-    <div class="section-label">Subscribe</div>
-    <h2>Start every market day with an edge.</h2>
-    <p>The Brief lands in your inbox each weekday morning with exactly what moved markets, why it matters, and what to say about it in your next interview or client conversation.</p>
-    <p>Free. No spam. Built for finance students and early-career professionals.</p>
-  </div>
+    <div style="margin-bottom:40px">
+      <div class="overline">Subscribe</div>
+      <h2>Built for the finance student who wants to sound prepared.</h2>
+      <p class="lead">Know what moved, why it mattered, and how to talk about it — before your next interview, coffee chat, or finance club meeting.</p>
+    </div>
 
-  <div class="section" style="border-top:2.5px solid var(--ink)">
-    <div style="max-width:440px">
+    <div style="border-top:3px solid var(--ink);padding-top:28px">
       <form class="subscribe-form" action="https://formspree.io/f/xpqegpgb" method="POST">
-        <input type="email" name="email" placeholder="your@email.com" required>
-        <input type="hidden" name="_subject" value="New Brief subscriber">
-        <button type="submit">Subscribe — It's Free</button>
+        <div class="form-row">
+          <input type="email" name="email" placeholder="your@email.com" required>
+          <input type="hidden" name="_subject" value="New Brief subscriber">
+          <button type="submit">Subscribe — It's Free</button>
+        </div>
         <p class="form-note">No spam. Unsubscribe any time. Read our <a href="about.html" style="color:var(--muted)">editorial standards</a>.</p>
       </form>
     </div>
-  </div>
 
-  <div class="section">
-    <div class="section-label">What You'll Get</div>
-    <h2>Every weekday morning.</h2>
+  </div>
+</section>
+
+<section class="section-alt">
+  <div class="wrap-narrow">
+    <div class="overline">What You'll Get</div>
+    <h2>Every weekday. Every market day that matters.</h2>
     <div class="feature-grid">
       <div class="feature-card">
         <div class="feature-card-label">Real Market Data</div>
@@ -54,7 +58,7 @@
       </div>
       <div class="feature-card">
         <div class="feature-card-label">Career-Ready Analysis</div>
-        <p>Written for the interview room and the trading desk — not for a general audience. Specific to where you're going.</p>
+        <p>Written for the interview room and the client meeting — not a general audience. Specific to where you're going.</p>
       </div>
       <div class="feature-card">
         <div class="feature-card-label">WM / Private Banking Focus</div>
@@ -66,16 +70,16 @@
       </div>
     </div>
   </div>
+</section>
 
-  <div class="section">
-    <div style="background:var(--paper-2);border-top:2.5px solid var(--ink);border-bottom:1px solid var(--rule);padding:24px 28px">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">While you're here</div>
-      <p style="font-size:15px;line-height:1.76;margin-bottom:16px">Read the latest issue to see exactly what you're signing up for.</p>
-      <a href="briefs/2026-04-28.html" class="btn btn-outline">Read the Latest Brief →</a>
-    </div>
+<section class="section">
+  <div class="wrap-narrow">
+    <div class="overline">See It First</div>
+    <h2>Read an issue before you decide.</h2>
+    <p style="color:var(--muted);margin-bottom:24px">The best way to know if The Brief is worth five minutes of your morning is to read one. No signup required.</p>
+    <a href="briefs/2026-06-18.html" class="btn btn-dark">Read the Latest Issue &rarr;</a>
   </div>
-
-</div><!-- /wrap-narrow -->
+</section>
 
 <footer class="site-footer">
   The Brief &nbsp;·&nbsp; Daily Market Intelligence<br>
