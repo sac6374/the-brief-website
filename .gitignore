@@ -1,0 +1,10 @@
+# Debug artifacts — never commit
+claude_raw_response.txt
+
+# Python
+__pycache__/
+*.py[cod]
+.env
+
+# macOS
+.DS_Store
