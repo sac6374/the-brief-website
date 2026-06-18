@@ -504,7 +504,7 @@ def build_page(data: dict) -> str:
     article_html = data["article_html"]
     snapshot    = data["market_snapshot"]
 
-    site_url = f"https://thebrieffinance.com/briefs/{date_iso}.html"
+    site_url = f"https://readmarketbrief.com/briefs/{date_iso}.html"
     share_raw = data["share_text"].replace("{{URL}}", site_url)
     share_encoded = re.sub(r"\s+", "+", share_raw.strip())
 
@@ -518,6 +518,7 @@ def build_page(data: dict) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{seo_title}</title>
 <meta name="description" content="{meta_desc}">
+<link rel="canonical" href="https://readmarketbrief.com/briefs/{date_iso}.html">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="../favicon.ico">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
@@ -579,7 +580,7 @@ def build_page(data: dict) -> str:
 
 def save_linkedin(data: dict, date_iso: str) -> None:
     LINKEDIN_DIR.mkdir(exist_ok=True)
-    site_url = f"https://thebrieffinance.com/briefs/{date_iso}.html"
+    site_url = f"https://readmarketbrief.com/briefs/{date_iso}.html"
     copy = data["linkedin_post"].replace("{{URL}}", site_url)
     out = LINKEDIN_DIR / f"{date_iso}.txt"
     out.write_text(copy, encoding="utf-8")
