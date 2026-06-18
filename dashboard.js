@@ -56,20 +56,40 @@ const dir = pct => pct == null ? 'flat' : pct >= 0 ? 'up' : 'dn';
 function skels(n) {
   return Array(n).fill(0).map(() =>
     `<div class="dc-skel-row">
-      <div class="dc-skel" style="width:90%"></div>
-      <div class="dc-skel dc-skel-sm" style="width:54px"></div>
-      <div class="dc-skel dc-skel-sm" style="width:54px"></div>
+      <div class="dc-skel dc-skel-name"></div>
+      <div class="dc-skel dc-skel-sm"></div>
+      <div class="dc-skel dc-skel-pill"></div>
     </div>`).join('');
 }
 
-/* ── Data row ───────────────────────────────────────────────────── */
-function rowHTML(item) {
-  const tick  = TICK[item.symbol]  || item.symbol;
-  const name  = LABEL[item.symbol] || item.name || item.symbol;
+/* ── Data rows ──────────────────────────────────────────────────── */
+
+// Name-only row: full name | price | pill (indices, forex, commodities, energy, bonds)
+function rowHTMLName(item) {
+  const name = LABEL[item.symbol] || item.name || item.symbol;
+  if (item.unavailable) {
+    return `<div class="dc-row">
+      <span class="dc-name-main">${name}</span>
+      <span class="dc-price">—</span>
+      <span class="dc-pill flat">N/A</span>
+    </div>`;
+  }
+  const price = fmt(item.price, item.symbol);
+  const pct   = fmtPct(item.pct);
+  const d     = dir(item.pct);
+  return `<div class="dc-row">
+    <span class="dc-name-main">${name}</span>
+    <span class="dc-price">${price}</span>
+    <span class="dc-pill ${d}">${pct || '—'}</span>
+  </div>`;
+}
+
+// Ticker row: ticker | price | pill (MAG7, crypto)
+function rowHTMLTick(item) {
+  const tick = TICK[item.symbol] || item.symbol;
   if (item.unavailable) {
     return `<div class="dc-row">
       <span class="dc-tick">${tick}</span>
-      <span class="dc-name">${name}</span>
       <span class="dc-price">—</span>
       <span class="dc-pill flat">N/A</span>
     </div>`;
@@ -79,17 +99,17 @@ function rowHTML(item) {
   const d     = dir(item.pct);
   return `<div class="dc-row">
     <span class="dc-tick">${tick}</span>
-    <span class="dc-name">${name}</span>
     <span class="dc-price">${price}</span>
     <span class="dc-pill ${d}">${pct || '—'}</span>
   </div>`;
 }
 
-function paint(id, items) {
+function paint(id, items, style = 'name') {
   const el = $(id);
   if (!el) return;
   if (!items || !items.length) { el.innerHTML = `<div class="dc-err">Data unavailable</div>`; return; }
-  el.innerHTML = items.map(rowHTML).join('');
+  const fn = style === 'tick' ? rowHTMLTick : rowHTMLName;
+  el.innerHTML = items.map(fn).join('');
 }
 
 function setTs(id, ts) {
@@ -108,7 +128,7 @@ function renderBonds(bonds, ts) {
     </div>`;
     return;
   }
-  el.innerHTML = bonds.items.map(rowHTML).join('');
+  el.innerHTML = bonds.items.map(rowHTMLName).join('');
   if (bonds.spread != null) {
     el.insertAdjacentHTML('beforeend', `
       <div class="dc-spread">
@@ -188,12 +208,12 @@ async function loadOverview() {
     if (!res.ok || data.error) throw new Error(data.error || 'API error');
     const ts = data.timestamp;
 
-    paint('indices-rows',     data.indices);     setTs('ts-indices',     ts);
-    paint('mag7-rows',        data.mag7);         setTs('ts-mag7',        ts);
-    paint('crypto-rows',      data.crypto);       setTs('ts-crypto',      ts);
-    paint('commodities-rows', data.commodities);  setTs('ts-commodities', ts);
-    paint('energy-rows',      data.energy);       setTs('ts-energy',      ts);
-    paint('forex-rows',       data.forex);        setTs('ts-forex',       ts);
+    paint('indices-rows',     data.indices,     'name'); setTs('ts-indices',     ts);
+    paint('mag7-rows',        data.mag7,        'tick'); setTs('ts-mag7',        ts);
+    paint('crypto-rows',      data.crypto,      'tick'); setTs('ts-crypto',      ts);
+    paint('commodities-rows', data.commodities, 'name'); setTs('ts-commodities', ts);
+    paint('energy-rows',      data.energy,      'name'); setTs('ts-energy',      ts);
+    paint('forex-rows',       data.forex,       'name'); setTs('ts-forex',       ts);
 
     renderBonds(data.bonds, ts);
     renderSentiment(data.sentiment, ts);
