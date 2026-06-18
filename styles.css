@@ -388,13 +388,13 @@ a { color: var(--red); }
   padding: 4px 10px;
 }
 .latest-card-footer {
-  padding: 16px 24px 22px;
+  padding: 18px 24px 22px;
   border-top: 1px solid var(--rule);
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   gap: 16px;
-  background: var(--paper);
+  background: var(--paper-2);
 }
 
 /* ── Mini snapshot (inside latest card) ──────────────────────────────────── */
@@ -454,11 +454,11 @@ a { color: var(--red); }
 }
 .benefit-num {
   font-family: 'DM Mono', monospace;
-  font-size: 8.5px;
-  letter-spacing: .22em;
-  text-transform: uppercase;
-  color: var(--gold);
-  margin-bottom: 11px;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--rule);
+  line-height: 1;
+  margin-bottom: 14px;
 }
 .benefit-title {
   font-family: 'Playfair Display', Georgia, serif;
@@ -493,9 +493,9 @@ a { color: var(--red); }
 }
 .preview-item-num {
   font-family: 'DM Mono', monospace;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 400;
-  color: var(--rule);
+  color: var(--muted-2);
   line-height: 1;
   margin-bottom: 12px;
 }
@@ -586,6 +586,16 @@ a { color: var(--red); }
   display: flex;
   gap: 0;
   max-width: 440px;
+  flex-wrap: wrap;
+}
+@media (max-width: 480px) {
+  .subscribe-form .form-row input[type="email"],
+  .subscribe-form .form-row button {
+    width: 100%;
+    border-right: 1.5px solid var(--rule);
+  }
+  .subscribe-form .form-row input[type="email"] { border-bottom: none; }
+  .subscribe-form.inverted .form-row input[type="email"] { border-right-color: rgba(247,244,239,0.25); }
 }
 .subscribe-form input[type="email"] {
   flex: 1;
