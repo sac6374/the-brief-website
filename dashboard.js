@@ -4,18 +4,28 @@
 
 'use strict';
 
-/* ── Labels ──────────────────────────────────────────────────────── */
+/* ── Labels & display tickers ────────────────────────────────────── */
 const LABELS = {
   SPX: 'S&P 500', IXIC: 'Nasdaq Composite', DJI: 'Dow Jones',
   RUT: 'Russell 2000', VIX: 'CBOE VIX',
   AAPL: 'Apple', MSFT: 'Microsoft', NVDA: 'NVIDIA', AMZN: 'Amazon',
   GOOGL: 'Alphabet', META: 'Meta', TSLA: 'Tesla',
   'BTC/USD': 'Bitcoin', 'ETH/USD': 'Ethereum',
+  'XRP/USD': 'XRP', 'SOL/USD': 'Solana',
   'XAU/USD': 'Gold', 'XAG/USD': 'Silver', 'XCU/USD': 'Copper',
-  'WTI/USD': 'WTI Crude', 'BRNT/USD': 'Brent Crude', 'NG/USD': 'Natural Gas',
+  'WTI/USD': 'WTI Crude Oil', 'BRNT/USD': 'Brent Crude Oil', 'NG/USD': 'Natural Gas',
   'EUR/USD': 'Euro / Dollar', 'USD/JPY': 'Dollar / Yen',
   'GBP/USD': 'Sterling / Dollar', 'DXY': 'US Dollar Index', 'USD/CAD': 'Dollar / CAD',
   US10Y: 'US 10Y Treasury', US2Y: 'US 2Y Treasury',
+};
+
+// Clean short tickers shown in the row's primary left column
+const TICK = {
+  'BTC/USD': 'BTC',   'ETH/USD': 'ETH',   'XRP/USD': 'XRP',   'SOL/USD': 'SOL',
+  'XAU/USD': 'GOLD',  'XAG/USD': 'SILVER', 'XCU/USD': 'COPPER',
+  'WTI/USD': 'WTI',   'BRNT/USD': 'BRENT', 'NG/USD': 'NAT GAS',
+  'EUR/USD': 'EUR/USD', 'USD/JPY': 'USD/JPY', 'GBP/USD': 'GBP/USD',
+  'USD/CAD': 'USD/CAD', DXY: 'DXY',
 };
 
 /* ── Formatting ──────────────────────────────────────────────────── */
@@ -52,7 +62,6 @@ function tsFmt(ts) {
 /* ── DOM helpers ─────────────────────────────────────────────────── */
 function el(id) { return document.getElementById(id); }
 function pillDir(pct) { return pct == null ? 'flat' : pct >= 0 ? 'up' : 'dn'; }
-function pillArrow(dir) { return dir === 'up' ? '▲ ' : dir === 'dn' ? '▼ ' : ''; }
 
 /* ── Skeleton ────────────────────────────────────────────────────── */
 function skeletons(n) {
@@ -67,24 +76,24 @@ function skeletons(n) {
 
 /* ── Row HTML ────────────────────────────────────────────────────── */
 function rowHTML(item) {
+  const tick  = TICK[item.symbol] || item.symbol;
+  const name  = LABELS[item.symbol] || item.name || item.symbol;
   if (item.unavailable) {
     return `<div class="drow">
-      <div class="drow-ident"><div class="drow-name">${LABELS[item.symbol] || item.symbol}</div><span class="drow-sym">${item.symbol}</span></div>
+      <div class="drow-tick">${tick}</div>
+      <div class="drow-name">${name}</div>
       <div class="drow-price">—</div>
       <div class="dpill flat">N/A</div>
     </div>`;
   }
-  const name  = LABELS[item.symbol] || item.name || item.symbol;
   const price = fmt(item.price, item.symbol);
   const pct   = fmtPct(item.pct);
   const dir   = pillDir(item.pct);
   return `<div class="drow">
-    <div class="drow-ident">
-      <div class="drow-name">${name}</div>
-      <span class="drow-sym">${item.symbol}</span>
-    </div>
+    <div class="drow-tick">${tick}</div>
+    <div class="drow-name">${name}</div>
     <div class="drow-price">${price}</div>
-    <div class="dpill ${dir}">${pillArrow(dir)}${pct || '—'}</div>
+    <div class="dpill ${dir}">${pct || '—'}</div>
   </div>`;
 }
 
@@ -131,60 +140,69 @@ function renderSentiment(sentiment, ts) {
   const { score, vix } = sentiment;
 
   let label, color, desc;
-  if      (score >= 80) { label = 'Extreme Greed'; color = '#34d399'; desc = 'Markets calm, complacency risk elevated. VIX historically low.'; }
+  if      (score >= 80) { label = 'Extreme Greed'; color = '#34d399'; desc = 'Markets calm. Complacency risk elevated as VIX sits historically low.'; }
   else if (score >= 60) { label = 'Greed';         color = '#86efac'; desc = 'Risk appetite above average. Equities generally well-bid.'; }
-  else if (score >= 40) { label = 'Neutral';        color = '#fbbf24'; desc = 'Near historical average. No dominant directional bias.'; }
+  else if (score >= 40) { label = 'Neutral';        color = '#fbbf24'; desc = 'Near historical average. No strong directional bias.'; }
   else if (score >= 20) { label = 'Fear';           color = '#fb923c'; desc = 'Elevated uncertainty. Defensive positioning increasing.'; }
   else                  { label = 'Extreme Fear';   color = '#f87171'; desc = 'Significant market stress. Sharp moves and volatility expected.'; }
 
-  // Semicircle arc: starts at 180° (left), ends at 0° (right)
-  const cx = 100, cy = 100, r = 80;
-  const angle  = 180 - (score / 100) * 180; // 180 = left (fear), 0 = right (greed)
-  const rad    = (a) => (a * Math.PI) / 180;
-  const needleX = cx + r * Math.cos(rad(angle));
-  const needleY = cy - r * Math.sin(rad(angle));
+  const cx = 100, cy = 105, r = 78;
+  const toRad = (a) => (a * Math.PI) / 180;
 
-  // Track arc (full half-circle)
-  const trackD = `M${cx - r},${cy} A${r},${r} 0 0 1 ${cx + r},${cy}`;
+  // Needle: 180° = left (Extreme Fear), 0° = right (Extreme Greed)
+  const needleAngle = 180 - (score / 100) * 180;
+  const nx = cx + (r - 10) * Math.cos(toRad(needleAngle));
+  const ny = cy - (r - 10) * Math.sin(toRad(needleAngle));
 
-  // Fill arc from left up to needle position
-  const fillAngleStart = 180;
-  const fillAngleEnd   = angle;
-  const sweepLarge     = (fillAngleStart - fillAngleEnd) > 180 ? 1 : 0;
-  const fx1 = cx + r * Math.cos(rad(fillAngleStart));
-  const fy1 = cy - r * Math.sin(rad(fillAngleStart));
-  const fx2 = cx + r * Math.cos(rad(fillAngleEnd));
-  const fy2 = cy - r * Math.sin(rad(fillAngleEnd));
-  const fillD = score > 0
-    ? `M${fx1},${fy1} A${r},${r} 0 ${sweepLarge} 1 ${fx2},${fy2}`
-    : '';
+  // Build 5 colored arc segments (each 36° = 180°/5 zones)
+  const zones = [
+    { color: '#f87171', from: 180, to: 144 }, // 0–20: Extreme Fear
+    { color: '#fb923c', from: 144, to: 108 }, // 20–40: Fear
+    { color: '#fbbf24', from: 108, to:  72 }, // 40–60: Neutral
+    { color: '#86efac', from:  72, to:  36 }, // 60–80: Greed
+    { color: '#34d399', from:  36, to:   0 }, // 80–100: Extreme Greed
+  ];
+
+  function arcPath(fromDeg, toDeg) {
+    const x1 = cx + r * Math.cos(toRad(fromDeg));
+    const y1 = cy - r * Math.sin(toRad(fromDeg));
+    const x2 = cx + r * Math.cos(toRad(toDeg));
+    const y2 = cy - r * Math.sin(toRad(toDeg));
+    return `M${x1},${y1} A${r},${r} 0 0 1 ${x2},${y2}`;
+  }
+
+  const arcPaths = zones.map(z =>
+    `<path d="${arcPath(z.from, z.to)}" stroke="${z.color}" stroke-width="9" fill="none" stroke-linecap="butt" opacity="0.75"/>`
+  ).join('');
 
   node.innerHTML = `
     <div class="dgauge-svg-wrap">
-      <svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
-        <!-- Track -->
-        <path d="${trackD}" stroke="rgba(255,255,255,0.07)" stroke-width="10" fill="none" stroke-linecap="round"/>
-        <!-- Fill -->
-        ${fillD ? `<path d="${fillD}" stroke="${color}" stroke-width="10" fill="none" stroke-linecap="round" opacity="0.85"/>` : ''}
+      <svg viewBox="0 0 200 115" xmlns="http://www.w3.org/2000/svg">
+        <!-- Dim track -->
+        <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}"
+          stroke="rgba(255,255,255,0.05)" stroke-width="9" fill="none" stroke-linecap="butt"/>
+        <!-- Colored zones -->
+        ${arcPaths}
         <!-- Needle -->
-        <line x1="${cx}" y1="${cy}" x2="${needleX}" y2="${needleY}"
-          stroke="${color}" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
-        <circle cx="${cx}" cy="${cy}" r="5" fill="${color}" opacity="0.9"/>
-        <!-- Labels -->
-        <text x="18" y="106" font-size="7" fill="rgba(255,255,255,0.25)" font-family="monospace" letter-spacing="0">Fear</text>
-        <text x="162" y="106" font-size="7" fill="rgba(255,255,255,0.25)" font-family="monospace" letter-spacing="0">Greed</text>
+        <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}"
+          stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.9"/>
+        <circle cx="${cx}" cy="${cy}" r="4.5" fill="${color}"/>
+        <circle cx="${cx}" cy="${cy}" r="2"   fill="#0a0c10"/>
+        <!-- Zone labels -->
+        <text x="10"  y="114" font-size="7" fill="rgba(255,255,255,0.22)" font-family="monospace">Ext. Fear</text>
+        <text x="155" y="114" font-size="7" fill="rgba(255,255,255,0.22)" font-family="monospace">Ext. Greed</text>
       </svg>
     </div>
     <div class="dgauge-number" style="color:${color}">${score}</div>
     <div class="dgauge-label" style="color:${color}">${label}</div>
     <div class="dgauge-desc">${desc}</div>
-    <div class="dgauge-note">Proxy derived from VIX ${vix != null ? `(${vix.toFixed(2)})` : ''} · Not the CNN Fear &amp; Greed Index</div>`;
+    <div class="dgauge-note">Proxy from VIX ${vix != null ? `(${vix.toFixed(2)})` : ''} · Not the CNN Fear &amp; Greed Index</div>`;
   setTs('ts-sentiment', ts);
 }
 
 /* ── Overview load ───────────────────────────────────────────────── */
 async function loadOverview() {
-  const SKELS = { 'indices-rows': 5, 'mag7-rows': 7, 'crypto-rows': 2, 'commodities-rows': 3, 'energy-rows': 3, 'forex-rows': 5 };
+  const SKELS = { 'indices-rows': 5, 'mag7-rows': 7, 'crypto-rows': 4, 'commodities-rows': 3, 'energy-rows': 3, 'forex-rows': 5 };
   Object.entries(SKELS).forEach(([id, n]) => {
     const node = el(id); if (node) node.innerHTML = skeletons(n);
   });
