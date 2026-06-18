@@ -2,22 +2,13 @@
 """
 generate_brief.py — The Brief daily issue generator.
 
-Calls the Anthropic API with web search enabled, generates a JSON brief,
-wraps the article HTML in a full page shell, and updates index.html + archive.html.
+Calls the Anthropic API with web search enabled, generates a structured JSON brief,
+wraps it in a full HTML page, and updates index.html + archive.html.
 
-Usage:
-    python scripts/generate_brief.py
+Required env var: ANTHROPIC_API_KEY
 
-Required environment variable:
-    ANTHROPIC_API_KEY
-
-Exits with code 1 (and saves claude_raw_response.txt) if:
-    - ANTHROPIC_API_KEY is missing
-    - API call fails for any reason
-    - Response contains no usable text
-    - JSON cannot be parsed
-    - Any required field is missing
-    - Claude signals data was unavailable (error field in response)
+Exits with code 1 (saves claude_raw_response.txt) on any failure.
+Never writes files if generation or validation fails.
 """
 
 import json
@@ -27,7 +18,6 @@ import sys
 from datetime import date
 from pathlib import Path
 
-# ── Dependency check ───────────────────────────────────────────────────────────
 try:
     import anthropic
 except ImportError:
@@ -36,12 +26,12 @@ except ImportError:
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 ROOT = Path(__file__).parent.parent
-BRIEFS_DIR = ROOT / "briefs"
-INDEX_HTML = ROOT / "index.html"
-ARCHIVE_HTML = ROOT / "archive.html"
+BRIEFS_DIR        = ROOT / "briefs"
+INDEX_HTML        = ROOT / "index.html"
+ARCHIVE_HTML      = ROOT / "archive.html"
 SYSTEM_PROMPT_FILE = ROOT / "prompts" / "system_prompt.txt"
 RAW_RESPONSE_FILE = ROOT / "claude_raw_response.txt"
-LINKEDIN_DIR = ROOT / "linkedin"
+LINKEDIN_DIR      = ROOT / "linkedin"
 
 # ── Required JSON fields ───────────────────────────────────────────────────────
 REQUIRED_FIELDS = [
@@ -51,6 +41,11 @@ REQUIRED_FIELDS = [
     "alert_strip",
     "seo_title",
     "meta_description",
+    "issue_kicker",
+    "opening_summary",
+    "feature_theme",
+    "feature_image_alt",
+    "market_snapshot",
     "archive_teaser",
     "homepage_teaser",
     "linkedin_post",
@@ -58,7 +53,216 @@ REQUIRED_FIELDS = [
     "article_html",
 ]
 
-# ── Inline CSS for brief pages (self-contained, no external stylesheet) ────────
+# ── Feature theme SVG art ──────────────────────────────────────────────────────
+# Each entry: background color + inline SVG content for a 680×200 viewBox.
+# All art is pure SVG — no external resources, no copyright issues.
+FEATURE_THEMES = {
+    "market-dashboard": {
+        "label": "Market Dashboard",
+        "bg": "#0d0d0d",
+        "svg": """
+  <line x1="0" y1="60" x2="680" y2="60" stroke="#222" stroke-width="1"/>
+  <line x1="0" y1="120" x2="680" y2="120" stroke="#222" stroke-width="1"/>
+  <line x1="0" y1="170" x2="680" y2="170" stroke="#222" stroke-width="1"/>
+  <line x1="136" y1="0" x2="136" y2="200" stroke="#1a1a1a" stroke-width="1"/>
+  <line x1="272" y1="0" x2="272" y2="200" stroke="#1a1a1a" stroke-width="1"/>
+  <line x1="408" y1="0" x2="408" y2="200" stroke="#1a1a1a" stroke-width="1"/>
+  <line x1="544" y1="0" x2="544" y2="200" stroke="#1a1a1a" stroke-width="1"/>
+  <polyline points="0,165 60,155 110,160 170,138 230,143 290,118 350,124 410,96 460,104 520,74 580,80 640,52 680,44"
+            fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon points="0,165 60,155 110,160 170,138 230,143 290,118 350,124 410,96 460,104 520,74 580,80 640,52 680,44 680,200 0,200"
+           fill="#22c55e" fill-opacity="0.07"/>
+  <circle cx="520" cy="74" r="3.5" fill="#22c55e"/>
+  <circle cx="640" cy="52" r="3.5" fill="#22c55e"/>
+  <circle cx="680" cy="44" r="5" fill="#22c55e"/>
+  <polyline points="0,155 100,148 200,152 300,144 400,138 500,130 620,120 680,118"
+            fill="none" stroke="#22c55e" stroke-width="1" opacity="0.25" stroke-dasharray="3,4"/>""",
+    },
+    "fed-rates": {
+        "label": "Fed & Rates",
+        "bg": "#060e1a",
+        "svg": """
+  <line x1="0" y1="50" x2="680" y2="50" stroke="#0d1f33" stroke-width="1"/>
+  <line x1="0" y1="100" x2="680" y2="100" stroke="#0d1f33" stroke-width="1"/>
+  <line x1="0" y1="150" x2="680" y2="150" stroke="#0d1f33" stroke-width="1"/>
+  <path d="M 40,165 C 120,165 200,130 320,100 S 500,72 640,65"
+        fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon points="40,165 120,165 200,130 320,100 500,72 640,65 680,64 680,200 0,200"
+           fill="#60a5fa" fill-opacity="0.07"/>
+  <path d="M 40,130 C 140,128 260,126 380,130 S 540,138 640,142"
+        fill="none" stroke="#60a5fa" stroke-width="1.2" stroke-dasharray="5,4" opacity="0.35"/>
+  <line x1="140" y1="30" x2="140" y2="185" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,3" opacity="0.55"/>
+  <text x="146" y="48" fill="#f59e0b" font-size="9" font-family="monospace" opacity="0.75">FOMC</text>
+  <line x1="390" y1="30" x2="390" y2="185" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,3" opacity="0.35"/>
+  <text x="396" y="48" fill="#f59e0b" font-size="9" font-family="monospace" opacity="0.5">NEXT</text>""",
+    },
+    "earnings": {
+        "label": "Earnings Season",
+        "bg": "#080808",
+        "svg": """
+  <line x1="0" y1="170" x2="680" y2="170" stroke="#1e1e1e" stroke-width="1"/>
+  <line x1="0" y1="120" x2="680" y2="120" stroke="#1a1a1a" stroke-width="1"/>
+  <line x1="0" y1="70" x2="680" y2="70" stroke="#1a1a1a" stroke-width="1"/>
+  <rect x="45" y="118" width="32" height="52" fill="#1e293b" rx="1"/>
+  <rect x="45" y="95"  width="32" height="75" fill="#22c55e" rx="1" opacity="0.85"/>
+  <rect x="125" y="125" width="32" height="45" fill="#1e293b" rx="1"/>
+  <rect x="125" y="102" width="32" height="68" fill="#22c55e" rx="1" opacity="0.85"/>
+  <rect x="205" y="110" width="32" height="60" fill="#1e293b" rx="1"/>
+  <rect x="205" y="122" width="32" height="48" fill="#ef4444" rx="1" opacity="0.75"/>
+  <rect x="285" y="105" width="32" height="65" fill="#1e293b" rx="1"/>
+  <rect x="285" y="85"  width="32" height="85" fill="#22c55e" rx="1" opacity="0.85"/>
+  <rect x="365" y="115" width="32" height="55" fill="#1e293b" rx="1"/>
+  <rect x="365" y="92"  width="32" height="78" fill="#22c55e" rx="1" opacity="0.85"/>
+  <rect x="445" y="108" width="32" height="62" fill="#1e293b" rx="1"/>
+  <rect x="445" y="118" width="32" height="52" fill="#ef4444" rx="1" opacity="0.65"/>
+  <rect x="525" y="100" width="32" height="70" fill="#1e293b" rx="1"/>
+  <rect x="525" y="80"  width="32" height="90" fill="#22c55e" rx="1" opacity="0.85"/>
+  <rect x="605" y="112" width="32" height="58" fill="#1e293b" rx="1"/>
+  <rect x="605" y="90"  width="32" height="80" fill="#22c55e" rx="1" opacity="0.85"/>
+  <polyline points="61,88 141,95 221,115 301,78 381,85 461,110 541,73 621,83"
+            fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.6"/>""",
+    },
+    "oil-commodities": {
+        "label": "Oil & Commodities",
+        "bg": "#0a0800",
+        "svg": """
+  <line x1="0" y1="60" x2="680" y2="60" stroke="#1e1600" stroke-width="1"/>
+  <line x1="0" y1="110" x2="680" y2="110" stroke="#1e1600" stroke-width="1"/>
+  <line x1="0" y1="160" x2="680" y2="160" stroke="#1e1600" stroke-width="1"/>
+  <polyline points="0,90 50,75 100,60 150,48 200,68 250,52 300,80 350,100 400,115 450,108 500,132 560,148 620,158 680,165"
+            fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon points="0,90 50,75 100,60 150,48 200,68 250,52 300,80 350,100 400,115 450,108 500,132 560,148 620,158 680,165 680,200 0,200"
+           fill="#f59e0b" fill-opacity="0.07"/>
+  <polyline points="0,145 80,138 170,130 270,125 370,128 470,133 580,140 680,148"
+            fill="none" stroke="#fb923c" stroke-width="1.2" opacity="0.4"/>
+  <circle cx="150" cy="48" r="3.5" fill="#f59e0b"/>
+  <line x1="150" y1="20" x2="150" y2="48" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2" opacity="0.5"/>
+  <text x="155" y="36" fill="#f59e0b" font-size="9" font-family="monospace" opacity="0.7">PEAK</text>""",
+    },
+    "geopolitics": {
+        "label": "Geopolitics",
+        "bg": "#03030e",
+        "svg": """
+  <ellipse cx="340" cy="100" rx="190" ry="85" fill="none" stroke="#1e1b4b" stroke-width="1" opacity="0.9"/>
+  <ellipse cx="340" cy="100" rx="120" ry="85" fill="none" stroke="#1e1b4b" stroke-width="1" opacity="0.65"/>
+  <ellipse cx="340" cy="100" rx="50" ry="85" fill="none" stroke="#1e1b4b" stroke-width="1" opacity="0.4"/>
+  <line x1="150" y1="100" x2="530" y2="100" stroke="#1e1b4b" stroke-width="1" opacity="0.9"/>
+  <line x1="340" y1="15" x2="340" y2="185" stroke="#1e1b4b" stroke-width="1" opacity="0.9"/>
+  <line x1="170" y1="50" x2="510" y2="50" stroke="#1e1b4b" stroke-width="0.6" opacity="0.5"/>
+  <line x1="170" y1="150" x2="510" y2="150" stroke="#1e1b4b" stroke-width="0.6" opacity="0.5"/>
+  <circle cx="225" cy="82" r="5" fill="#818cf8" opacity="0.9"/>
+  <circle cx="225" cy="82" r="13" fill="none" stroke="#818cf8" stroke-width="1" opacity="0.35"/>
+  <circle cx="470" cy="68" r="5" fill="#818cf8" opacity="0.9"/>
+  <circle cx="470" cy="68" r="13" fill="none" stroke="#818cf8" stroke-width="1" opacity="0.35"/>
+  <circle cx="390" cy="138" r="4" fill="#818cf8" opacity="0.65"/>
+  <circle cx="300" cy="55" r="3" fill="#818cf8" opacity="0.5"/>
+  <line x1="225" y1="82" x2="470" y2="68" stroke="#818cf8" stroke-width="0.8" stroke-dasharray="5,4" opacity="0.45"/>
+  <line x1="470" y1="68" x2="390" y2="138" stroke="#818cf8" stroke-width="0.8" stroke-dasharray="5,4" opacity="0.45"/>
+  <line x1="225" y1="82" x2="300" y2="55" stroke="#818cf8" stroke-width="0.8" stroke-dasharray="5,4" opacity="0.3"/>""",
+    },
+    "sector-rotation": {
+        "label": "Sector Rotation",
+        "bg": "#040609",
+        "svg": """
+  <path d="M 340,100 L 340,28 A 72,72 0 0,1 402,136 Z" fill="#22c55e" opacity="0.82"/>
+  <path d="M 340,100 L 402,136 A 72,72 0 0,1 278,136 Z" fill="#ef4444" opacity="0.72"/>
+  <path d="M 340,100 L 278,136 A 72,72 0 0,1 278,64 Z" fill="#f59e0b" opacity="0.78"/>
+  <path d="M 340,100 L 278,64 A 72,72 0 0,1 340,28 Z" fill="#60a5fa" opacity="0.72"/>
+  <circle cx="340" cy="100" r="34" fill="#040609"/>
+  <text x="356" y="64" fill="#22c55e" font-size="9" font-family="monospace" opacity="0.9">TECH</text>
+  <text x="382" y="132" fill="#ef4444" font-size="9" font-family="monospace" opacity="0.9">ENRG</text>
+  <text x="272" y="148" fill="#f59e0b" font-size="9" font-family="monospace" opacity="0.9">FIN</text>
+  <text x="274" y="72" fill="#60a5fa" font-size="9" font-family="monospace" opacity="0.9">HLTH</text>
+  <path d="M 340,100 m 46,0 a 46,46 0 0,0 -46,-46" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
+  <polygon points="296,52 302,62 290,62" fill="rgba(255,255,255,0.35)"/>
+  <circle cx="160" cy="100" r="28" fill="none" stroke="#1e293b" stroke-width="1"/>
+  <circle cx="520" cy="100" r="28" fill="none" stroke="#1e293b" stroke-width="1"/>
+  <text x="140" y="94" fill="#94a3b8" font-size="8" font-family="monospace" opacity="0.6">SECTOR</text>
+  <text x="141" y="106" fill="#94a3b8" font-size="8" font-family="monospace" opacity="0.6">WEIGHT</text>
+  <text x="498" y="94" fill="#94a3b8" font-size="8" font-family="monospace" opacity="0.6">PRICE</text>
+  <text x="499" y="106" fill="#94a3b8" font-size="8" font-family="monospace" opacity="0.6">RETURN</text>""",
+    },
+    "banking": {
+        "label": "Banking & Credit",
+        "bg": "#060606",
+        "svg": """
+  <line x1="0" y1="170" x2="680" y2="170" stroke="#1e1e1e" stroke-width="1"/>
+  <line x1="0" y1="120" x2="680" y2="120" stroke="#181818" stroke-width="1"/>
+  <line x1="0" y1="70" x2="680" y2="70" stroke="#141414" stroke-width="1"/>
+  <rect x="40"  y="65"  width="44" height="105" fill="#1e293b" rx="1"/>
+  <rect x="40"  y="65"  width="44" height="65"  fill="#334155" rx="1"/>
+  <rect x="118" y="80"  width="44" height="90"  fill="#1e293b" rx="1"/>
+  <rect x="118" y="80"  width="44" height="52"  fill="#334155" rx="1"/>
+  <rect x="196" y="55"  width="44" height="115" fill="#1e293b" rx="1"/>
+  <rect x="196" y="55"  width="44" height="72"  fill="#334155" rx="1"/>
+  <rect x="274" y="72"  width="44" height="98"  fill="#1e293b" rx="1"/>
+  <rect x="274" y="72"  width="44" height="58"  fill="#334155" rx="1"/>
+  <rect x="352" y="60"  width="44" height="110" fill="#1e293b" rx="1"/>
+  <rect x="352" y="60"  width="44" height="68"  fill="#334155" rx="1"/>
+  <rect x="430" y="78"  width="44" height="92"  fill="#1e293b" rx="1"/>
+  <rect x="430" y="120" width="44" height="50"  fill="#ef4444" rx="1" opacity="0.65"/>
+  <rect x="508" y="68"  width="44" height="102" fill="#1e293b" rx="1"/>
+  <rect x="508" y="68"  width="44" height="62"  fill="#334155" rx="1"/>
+  <rect x="586" y="75"  width="44" height="95"  fill="#1e293b" rx="1"/>
+  <rect x="586" y="75"  width="44" height="55"  fill="#334155" rx="1"/>
+  <polyline points="62,80 140,88 218,72 296,84 374,76 452,92 530,80 608,85"
+            fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.6"/>""",
+    },
+    "tech": {
+        "label": "Tech & AI",
+        "bg": "#02020c",
+        "svg": """
+  <circle cx="170" cy="100" r="6" fill="#a78bfa"/>
+  <circle cx="340" cy="58"  r="8" fill="#a78bfa"/>
+  <circle cx="340" cy="142" r="6" fill="#a78bfa"/>
+  <circle cx="510" cy="100" r="8" fill="#a78bfa"/>
+  <circle cx="255" cy="162" r="4" fill="#a78bfa" opacity="0.6"/>
+  <circle cx="425" cy="48"  r="4" fill="#a78bfa" opacity="0.6"/>
+  <circle cx="95"  cy="52"  r="4" fill="#a78bfa" opacity="0.5"/>
+  <circle cx="585" cy="158" r="4" fill="#a78bfa" opacity="0.5"/>
+  <circle cx="600" cy="60"  r="3" fill="#a78bfa" opacity="0.4"/>
+  <line x1="170" y1="100" x2="340" y2="58"  stroke="#a78bfa" stroke-width="1.2" opacity="0.5"/>
+  <line x1="170" y1="100" x2="340" y2="142" stroke="#a78bfa" stroke-width="1.2" opacity="0.5"/>
+  <line x1="340" y1="58"  x2="510" y2="100" stroke="#a78bfa" stroke-width="1.8" opacity="0.65"/>
+  <line x1="340" y1="142" x2="510" y2="100" stroke="#a78bfa" stroke-width="1.8" opacity="0.65"/>
+  <line x1="340" y1="58"  x2="340" y2="142" stroke="#a78bfa" stroke-width="0.8" opacity="0.3"/>
+  <line x1="95"  y1="52"  x2="170" y2="100" stroke="#a78bfa" stroke-width="0.8" opacity="0.3"/>
+  <line x1="425" y1="48"  x2="340" y2="58"  stroke="#a78bfa" stroke-width="0.8" opacity="0.3"/>
+  <line x1="255" y1="162" x2="340" y2="142" stroke="#a78bfa" stroke-width="0.8" opacity="0.3"/>
+  <line x1="585" y1="158" x2="510" y2="100" stroke="#a78bfa" stroke-width="0.8" opacity="0.3"/>
+  <line x1="600" y1="60"  x2="510" y2="100" stroke="#a78bfa" stroke-width="0.8" opacity="0.25"/>
+  <circle cx="340" cy="58"  r="20" fill="none" stroke="#a78bfa" stroke-width="0.6" opacity="0.25"/>
+  <circle cx="510" cy="100" r="20" fill="none" stroke="#a78bfa" stroke-width="0.6" opacity="0.25"/>""",
+    },
+}
+
+# ── Additional CSS for new visual components ───────────────────────────────────
+NEW_CSS = """
+  .issue-kicker{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);padding:20px 0 10px;border-bottom:1px solid var(--rule)}
+  .issue-headline{font-family:'Playfair Display',Georgia,serif;font-size:clamp(24px,5vw,38px);font-weight:900;line-height:1.1;letter-spacing:-.022em;color:var(--ink);margin:16px 0 14px}
+  .opening-summary{font-size:16.5px;line-height:1.78;color:#3d3830;border-left:3px solid var(--ink);padding-left:18px;margin-bottom:24px;font-style:italic}
+  .feature-visual{position:relative;overflow:hidden;height:180px;margin-bottom:20px}
+  .feature-visual svg{position:absolute;top:0;left:0;width:100%;height:100%}
+  .feature-visual-label{position:absolute;bottom:12px;left:16px;font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,0.45);z-index:1}
+  .feature-visual-alt{position:absolute;top:12px;right:14px;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.2)}
+  .market-snapshot{border:1px solid var(--rule);border-top:2px solid var(--ink);background:var(--paper-2);margin-bottom:8px}
+  .market-snapshot-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px 0}
+  .market-snapshot-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+  .market-snapshot-time{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--muted-2)}
+  .market-snapshot-grid{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rule);margin-top:8px}
+  @media(max-width:420px){.market-snapshot-grid{grid-template-columns:repeat(2,1fr)}}
+  .snapshot-cell{padding:11px 14px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+  .snapshot-cell:nth-child(3n){border-right:none}
+  .snapshot-cell:nth-last-child(-n+3){border-bottom:none}
+  @media(max-width:420px){.snapshot-cell:nth-child(3n){border-right:1px solid var(--rule)}.snapshot-cell:nth-child(2n){border-right:none}.snapshot-cell:nth-last-child(-n+3){border-bottom:1px solid var(--rule)}.snapshot-cell:nth-last-child(-n+2){border-bottom:none}}
+  .snapshot-label{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .snapshot-value{font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:var(--ink);margin-bottom:2px;line-height:1}
+  .snapshot-change{font-family:'DM Mono',monospace;font-size:11px;font-weight:500}
+  .snapshot-change.up{color:var(--green)}.snapshot-change.down{color:var(--red)}.snapshot-change.flat{color:var(--muted)}
+  .snapshot-note{font-family:'DM Mono',monospace;font-size:7.5px;color:var(--muted-2);margin-top:3px}
+"""
+
+# ── Full inline CSS for brief pages ───────────────────────────────────────────
 BRIEF_CSS = """
   :root{--ink:#111010;--paper:#f7f3ec;--paper-2:#ede8df;--rule:#d5cfc4;--red:#b02020;--gold:#8a6710;--gold-bg:#faf4e4;--green:#1a5432;--green-bg:#edf6f1;--muted:#7a7168;--muted-2:#a09585}
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -73,16 +277,7 @@ BRIEF_CSS = """
   .alert-pip{width:6px;height:6px;border-radius:50%;background:#e05050;flex-shrink:0;animation:blink 1.6s ease-in-out infinite}
   @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
   .wrap{max-width:680px;margin:0 auto;padding:0 22px 72px}
-  .dateline{display:flex;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--rule);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-  .ticker{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--rule)}
-  .ticker-cell{padding:12px 10px;border-right:1px solid var(--rule);text-align:center}
-  .ticker-cell:last-child{border-right:none}
-  .t-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
-  .t-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--ink);margin-bottom:2px}
-  .t-chg{font-family:'DM Mono',monospace;font-size:10px;font-weight:500}
-  .t-note{font-family:'DM Mono',monospace;font-size:7.5px;color:var(--muted-2);margin-top:2px}
-  .down{color:var(--red)}.up{color:var(--green)}
-  .toc{border:1px solid var(--rule);border-top:2px solid var(--ink);padding:16px 20px;margin-top:16px}
+  .toc{border:1px solid var(--rule);border-top:2px solid var(--ink);padding:16px 20px;margin-bottom:8px}
   .toc-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
   .toc-list{list-style:none;padding:0;margin:0;columns:2;column-gap:24px}
   @media(max-width:480px){.toc-list{columns:1}}
@@ -91,7 +286,7 @@ BRIEF_CSS = """
   .toc-list a:hover .toc-title{color:var(--red);border-color:var(--red)}
   .toc-num{color:var(--red);font-size:9px;flex-shrink:0;letter-spacing:.08em}
   .toc-title{border-bottom:1px solid var(--rule);padding-bottom:1px}
-  .smart30{background:var(--ink);color:var(--paper);padding:20px 26px}
+  .smart30{background:var(--ink);color:var(--paper);padding:20px 26px;margin-top:32px}
   .smart30-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#888;margin-bottom:10px}
   .smart30 p{font-size:15.5px;line-height:1.75;color:#ede8df;margin-bottom:0}
   .section{margin-top:40px;padding-top:20px;border-top:1px solid var(--rule)}
@@ -152,14 +347,52 @@ BRIEF_CSS = """
   .sources{margin-top:36px;padding-top:14px;border-top:1px solid var(--rule);font-family:'DM Mono',monospace;font-size:9.5px;color:var(--muted);line-height:1.8}
   .sources strong{font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:8.5px}
   .footer{margin-top:24px;padding-top:16px;border-top:2px solid var(--ink);text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);line-height:1.9}
-"""
+""" + NEW_CSS
 
 
-def load_system_prompt() -> str:
-    if not SYSTEM_PROMPT_FILE.exists():
-        print(f"ERROR: System prompt not found at {SYSTEM_PROMPT_FILE}")
-        sys.exit(1)
-    return SYSTEM_PROMPT_FILE.read_text(encoding="utf-8")
+def render_feature_card(theme: str, alt: str) -> str:
+    """Return an HTML feature card with pure-SVG abstract art for the given theme."""
+    config = FEATURE_THEMES.get(theme, FEATURE_THEMES["market-dashboard"])
+    label = config["label"]
+    bg = config["bg"]
+    svg_inner = config["svg"]
+    return (
+        f'<div class="feature-visual" style="background:{bg}">\n'
+        f'  <svg viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg" '
+        f'preserveAspectRatio="xMidYMid slice" aria-hidden="true">\n'
+        f'{svg_inner}\n'
+        f'  </svg>\n'
+        f'  <div class="feature-visual-label">{label}</div>\n'
+        f'  <div class="feature-visual-alt">{alt}</div>\n'
+        f'</div>\n'
+    )
+
+
+def render_market_snapshot(snapshot: list) -> str:
+    """Render a structured market_snapshot list into HTML."""
+    cells = ""
+    for item in snapshot:
+        direction = item.get("direction", "flat")
+        arrow = "▲" if direction == "up" else ("▼" if direction == "down" else "—")
+        note = item.get("note", "")
+        note_html = f'<div class="snapshot-note">{note}</div>' if note else ""
+        cells += (
+            f'<div class="snapshot-cell">'
+            f'<div class="snapshot-label">{item["label"]}</div>'
+            f'<div class="snapshot-value">{item["value"]}</div>'
+            f'<div class="snapshot-change {direction}">{arrow} {item["change"]}</div>'
+            f'{note_html}'
+            f'</div>\n'
+        )
+    return (
+        '<div class="market-snapshot">\n'
+        '  <div class="market-snapshot-header">'
+        '<span class="market-snapshot-label">Market Snapshot</span>'
+        '<span class="market-snapshot-time">At Close</span>'
+        '</div>\n'
+        f'  <div class="market-snapshot-grid">\n{cells}  </div>\n'
+        '</div>\n'
+    )
 
 
 def call_api(system_prompt: str) -> str:
@@ -174,9 +407,9 @@ def call_api(system_prompt: str) -> str:
     user_message = (
         f"Today is {today}. "
         "Use your web_search tool first to retrieve today's real market data and news. "
-        "Search for: S&P 500 close, Nasdaq close, VIX, 10-year Treasury yield, WTI crude, "
-        "Brent crude, top movers, major earnings, Fed news, and the 2-3 biggest market stories today. "
-        "Then produce a complete issue of The Brief following the system prompt exactly. "
+        "Search for: S&P 500 close, Nasdaq close, Dow close, VIX, 10-year Treasury yield, "
+        "WTI crude, Brent crude, top movers, major earnings, Fed news, and the 2-3 biggest "
+        "market stories today. Then produce a complete issue of The Brief. "
         "Return ONLY the JSON object. No markdown fences. No text before or after the JSON."
     )
 
@@ -194,23 +427,21 @@ def call_api(system_prompt: str) -> str:
         print(f"ERROR: Could not connect to Anthropic API: {e}")
         sys.exit(1)
     except anthropic.AuthenticationError:
-        print("ERROR: Invalid ANTHROPIC_API_KEY. Check your GitHub secret.")
+        print("ERROR: Invalid ANTHROPIC_API_KEY.")
         sys.exit(1)
     except anthropic.RateLimitError:
-        print("ERROR: Anthropic API rate limit hit. Try again later.")
+        print("ERROR: Anthropic API rate limit hit.")
         sys.exit(1)
     except anthropic.APIStatusError as e:
         print(f"ERROR: Anthropic API error {e.status_code}: {e.message}")
         sys.exit(1)
 
-    # Collect all text blocks (model may produce multiple after tool use)
     text_parts = [block.text for block in response.content if block.type == "text"]
     text_content = "\n".join(text_parts).strip()
 
     if not text_content:
         print("ERROR: API returned no text content.")
         print(f"Stop reason: {response.stop_reason}")
-        print(f"Content block types: {[b.type for b in response.content]}")
         sys.exit(1)
 
     print(f"Received {len(text_content)} chars from API.")
@@ -223,40 +454,28 @@ def save_raw_response(raw: str) -> None:
 
 
 def extract_json(raw: str) -> dict:
-    """
-    Robustly extract the first valid JSON object from a Claude response.
-    Handles:
-    - Plain JSON
-    - JSON wrapped in ```json ... ``` fences
-    - JSON with preamble/postamble text
-    - Multiple text blocks concatenated
-    """
+    """Robustly extract the first valid JSON object from a Claude response."""
     original = raw
 
-    # Strategy 1: try the whole string as-is (ideal case)
+    # Strategy 1: whole string is valid JSON
     try:
         return json.loads(raw.strip())
     except json.JSONDecodeError:
         pass
 
-    # Strategy 2: strip a single code fence wrapping the whole response
-    stripped = raw.strip()
-    stripped = re.sub(r"^```(?:json)?\s*\n?", "", stripped)
+    # Strategy 2: strip a single markdown code fence
+    stripped = re.sub(r"^```(?:json)?\s*\n?", "", raw.strip())
     stripped = re.sub(r"\n?```\s*$", "", stripped)
     try:
         return json.loads(stripped.strip())
     except json.JSONDecodeError:
         pass
 
-    # Strategy 3: find the first { ... } JSON object in the text
-    # Handles cases where Claude added preamble like "Here is the JSON:"
+    # Strategy 3: find first { and walk to matching }
     match = re.search(r"\{", raw)
     if match:
         start = match.start()
-        # Walk forward to find the matching closing brace
-        depth = 0
-        in_string = False
-        escape_next = False
+        depth, in_string, escape_next = 0, False, False
         for i, ch in enumerate(raw[start:], start):
             if escape_next:
                 escape_next = False
@@ -272,28 +491,23 @@ def extract_json(raw: str) -> dict:
                 elif ch == "}":
                     depth -= 1
                     if depth == 0:
-                        candidate = raw[start : i + 1]
                         try:
-                            return json.loads(candidate)
+                            return json.loads(raw[start : i + 1])
                         except json.JSONDecodeError:
                             break
 
-    # All strategies failed — save raw response and exit
     save_raw_response(original)
     print("ERROR: Could not parse JSON from Claude response.")
-    print("       The raw response has been saved to claude_raw_response.txt")
-    print("       First 500 chars of response:")
-    print(original[:500])
+    print("       Raw response saved to claude_raw_response.txt")
+    print("       First 500 chars:", original[:500])
     sys.exit(1)
 
 
 def validate(data: dict) -> None:
-    # Check if Claude reported a data failure
     if "error" in data:
         print(f"ERROR: Claude reported a failure: {data['error']}")
         sys.exit(1)
 
-    # Check all required fields
     def field_missing(f: str) -> bool:
         val = data.get(f)
         if val is None:
@@ -308,35 +522,56 @@ def validate(data: dict) -> None:
         print("       Fields present:", list(data.keys()))
         sys.exit(1)
 
-    # Sanity check: article_html must have actual content
+    # market_snapshot must be a list with real data
+    snapshot = data.get("market_snapshot", [])
+    if not isinstance(snapshot, list) or len(snapshot) < 4:
+        print(f"ERROR: market_snapshot must be a list of at least 4 items (got {type(snapshot).__name__}, len={len(snapshot) if isinstance(snapshot, list) else 'n/a'})")
+        sys.exit(1)
+    placeholders = {"X,XXX", "XX,XXX", "X.XX", "$XX.XX", "X.X%", ""}
+    for item in snapshot:
+        if item.get("value", "") in placeholders:
+            print(f"ERROR: Placeholder value in market_snapshot for '{item.get('label')}': '{item.get('value')}'")
+            sys.exit(1)
+
+    # feature_theme must be a known key
+    valid_themes = set(FEATURE_THEMES.keys())
+    theme = data.get("feature_theme", "")
+    if theme not in valid_themes:
+        print(f"WARNING: Unknown feature_theme '{theme}'. Falling back to 'market-dashboard'.")
+        data["feature_theme"] = "market-dashboard"
+
+    # article_html must have real content
     article_html = data.get("article_html", "")
     if len(article_html) < 500:
-        print(f"ERROR: article_html is suspiciously short ({len(article_html)} chars). Content was not generated.")
+        print(f"ERROR: article_html is suspiciously short ({len(article_html)} chars).")
         sys.exit(1)
 
-    # Sanity check: article_html must not contain placeholder text
-    placeholders = ["X,XXX", "XX,XXX", "$XX.XX", "YOUR_DATA_HERE", "PLACEHOLDER"]
-    found = [p for p in placeholders if p in article_html]
-    if found:
-        print(f"ERROR: article_html contains placeholder text: {found}. Real data was not retrieved.")
-        sys.exit(1)
-
-    # Fix date_iso if model got it wrong
+    # date override if wrong
     today_iso = date.today().isoformat()
     if data.get("date_iso") != today_iso:
-        print(f"WARNING: date_iso '{data.get('date_iso')}' does not match today '{today_iso}'. Overriding.")
+        print(f"WARNING: date_iso '{data.get('date_iso')}' overridden to '{today_iso}'.")
         data["date_iso"] = today_iso
 
 
 def build_page(data: dict) -> str:
-    date_iso = data["date_iso"]
-    seo_title = data["seo_title"]
-    meta_desc = data["meta_description"]
-    alert_strip = data["alert_strip"]
-    article_html = data["article_html"]
-    share_text = data["share_text"].replace("{{URL}}", f"https://thebrieffinance.com/briefs/{date_iso}.html")
-    share_text_encoded = re.sub(r"\s+", "+", share_text.strip())
+    date_iso       = data["date_iso"]
+    seo_title      = data["seo_title"]
+    meta_desc      = data["meta_description"]
+    alert_strip    = data["alert_strip"]
+    kicker         = data["issue_kicker"]
+    headline       = data["headline"]
+    opening        = data["opening_summary"]
+    feature_theme  = data["feature_theme"]
+    feature_alt    = data["feature_image_alt"]
+    article_html   = data["article_html"]
+    snapshot       = data["market_snapshot"]
+
     site_url = f"https://thebrieffinance.com/briefs/{date_iso}.html"
+    share_raw = data["share_text"].replace("{{URL}}", site_url)
+    share_encoded = re.sub(r"\s+", "+", share_raw.strip())
+
+    feature_card_html  = render_feature_card(feature_theme, feature_alt)
+    market_snap_html   = render_market_snapshot(snapshot)
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -370,6 +605,13 @@ def build_page(data: dict) -> str:
 </div>
 
 <div class="wrap">
+  <div class="issue-kicker">{kicker}</div>
+  <h1 class="issue-headline">{headline}</h1>
+  <p class="opening-summary">{opening}</p>
+
+{feature_card_html}
+{market_snap_html}
+
 {article_html}
 
   <div style="margin-top:32px;border-top:2px solid #111010;padding-top:28px;display:flex;flex-direction:column;gap:12px">
@@ -381,7 +623,7 @@ def build_page(data: dict) -> str:
       Share on
       <a href="https://www.linkedin.com/sharing/share-offsite/?url={site_url}" target="_blank" rel="noopener" style="color:#111010;margin-left:6px">LinkedIn</a>
       &nbsp;·&nbsp;
-      <a href="https://twitter.com/intent/tweet?text={share_text_encoded}" target="_blank" rel="noopener" style="color:#111010">X / Twitter</a>
+      <a href="https://twitter.com/intent/tweet?text={share_encoded}" target="_blank" rel="noopener" style="color:#111010">X / Twitter</a>
     </div>
   </div>
 </div>
@@ -401,35 +643,28 @@ def save_linkedin(data: dict, date_iso: str) -> None:
 
 def update_index(data: dict, date_iso: str) -> None:
     content = INDEX_HTML.read_text(encoding="utf-8")
-    teaser = data["homepage_teaser"]
-    headline = data["headline"]
-    date_display = data["date_display"]
-
     new_block = (
         "  <!-- LATEST_BRIEF_START -->\n"
         "  <div class=\"section\">\n"
         "    <div class=\"section-label\">Latest Issue</div>\n"
         "    <div class=\"latest-card\">\n"
         "      <div class=\"latest-label\">Most Recent Brief</div>\n"
-        f"      <div class=\"latest-date\">{date_display}</div>\n"
-        f"      <div class=\"latest-title\">{headline}</div>\n"
-        f"      <p class=\"latest-teaser\">{teaser}</p>\n"
+        f"      <div class=\"latest-date\">{data['date_display']}</div>\n"
+        f"      <div class=\"latest-title\">{data['headline']}</div>\n"
+        f"      <p class=\"latest-teaser\">{data['homepage_teaser']}</p>\n"
         f"      <a href=\"briefs/{date_iso}.html\" class=\"btn btn-dark\">Read Full Issue &rarr;</a>\n"
         "    </div>\n"
         "  </div>\n"
         "  <!-- LATEST_BRIEF_END -->"
     )
-
-    # Use a lambda to avoid re.sub interpreting backslashes in the replacement
     updated = re.sub(
         r"<!-- LATEST_BRIEF_START -->.*?<!-- LATEST_BRIEF_END -->",
         lambda _: new_block,
         content,
         flags=re.DOTALL,
     )
-
     if updated == content:
-        print("WARNING: LATEST_BRIEF_START/END markers not found in index.html. Homepage not updated.")
+        print("WARNING: LATEST_BRIEF_START/END not found in index.html.")
     else:
         INDEX_HTML.write_text(updated, encoding="utf-8")
         print("index.html updated.")
@@ -440,31 +675,24 @@ def update_archive(data: dict, date_iso: str) -> None:
     parts = date_iso.split("-")
     month_abbr = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][int(parts[1])]
-    day = int(parts[2])
-    year = parts[0]
-    teaser = data["archive_teaser"]
-    headline = data["headline"]
-
+    day, year = int(parts[2]), parts[0]
     new_item = (
         f"\n    <li class=\"archive-item\">\n"
         f"      <div class=\"archive-date\">{month_abbr} {day}<br>{year}</div>\n"
         f"      <div>\n"
-        f"        <a class=\"archive-title\" href=\"briefs/{date_iso}.html\">{headline}</a>\n"
-        f"        <p class=\"archive-teaser\">{teaser}</p>\n"
+        f"        <a class=\"archive-title\" href=\"briefs/{date_iso}.html\">{data['headline']}</a>\n"
+        f"        <p class=\"archive-teaser\">{data['archive_teaser']}</p>\n"
         f"      </div>\n"
         f"    </li>\n"
     )
-
-    # Use a lambda to safely inject the new item without backslash interpretation
     updated = re.sub(
         r"(<!-- ARCHIVE_LIST_START -->\s*<ul[^>]*>)",
         lambda m: m.group(0) + new_item,
         content,
         flags=re.DOTALL,
     )
-
     if updated == content:
-        print("WARNING: ARCHIVE_LIST_START marker not found in archive.html. Archive not updated.")
+        print("WARNING: ARCHIVE_LIST_START not found in archive.html.")
     else:
         ARCHIVE_HTML.write_text(updated, encoding="utf-8")
         print("archive.html updated.")
@@ -478,13 +706,12 @@ def main() -> None:
         sys.exit(1)
 
     system_prompt = SYSTEM_PROMPT_FILE.read_text(encoding="utf-8")
-    raw = call_api(system_prompt)
+    raw  = call_api(system_prompt)
     data = extract_json(raw)
     validate(data)
 
     date_iso = data["date_iso"]
     out_path = BRIEFS_DIR / f"{date_iso}.html"
-
     if out_path.exists():
         print(f"WARNING: {out_path} already exists. Overwriting.")
 
@@ -495,7 +722,6 @@ def main() -> None:
     save_linkedin(data, date_iso)
     update_index(data, date_iso)
     update_archive(data, date_iso)
-
     print("=== Done. ===")
 
 
