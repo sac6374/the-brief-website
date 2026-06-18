@@ -10,16 +10,45 @@
   :root{--ink:#111010;--paper:#f7f3ec;--paper-2:#ede8df;--rule:#d5cfc4;--red:#b02020;--gold:#8a6710;--gold-bg:#faf4e4;--green:#1a5432;--green-bg:#edf6f1;--muted:#7a7168;--muted-2:#a09585}
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Source Serif 4',Georgia,serif;background:var(--paper);color:var(--ink);font-size:17px;line-height:1.78;-webkit-font-smoothing:antialiased}
-  .masthead{padding:36px 0 24px;text-align:center;border-bottom:2.5px solid var(--ink);border-top:4px solid var(--ink)}
-  .masthead-eyebrow{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
-  .masthead-title{font-family:'Playfair Display',Georgia,serif;font-size:clamp(44px,8vw,72px);font-weight:900;letter-spacing:-.025em;line-height:.95;margin-bottom:12px}
+  .site-nav-bar{background:#111010;padding:10px 0;text-align:center;border-bottom:1px solid #222}
+  .site-nav-bar a{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#f7f3ec;text-decoration:none;opacity:.65;transition:opacity .15s}
+  .site-nav-bar a:hover{opacity:1}
+  .site-nav-bar .nav-sep{color:#444;margin:0 10px}
+  .masthead{padding:32px 0 22px;text-align:center;border-bottom:2.5px solid var(--ink);border-top:4px solid var(--ink)}
+  .masthead-eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  .masthead-title{font-family:'Playfair Display',Georgia,serif;font-size:clamp(40px,7vw,62px);font-weight:900;letter-spacing:-.025em;line-height:.95;margin-bottom:12px}
   .masthead-rule{display:flex;align-items:center;justify-content:center;gap:14px}
-  .masthead-rule::before,.masthead-rule::after{content:'';display:block;height:1px;width:60px;background:var(--rule)}
-  .masthead-tagline{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-2)}
-  .alert-strip{background:var(--ink);color:var(--paper);padding:10px 20px;display:flex;align-items:center;justify-content:center;gap:10px;font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase}
-  .alert-pip{width:6px;height:6px;border-radius:50%;background:#e05050;flex-shrink:0;animation:blink 1.6s ease-in-out infinite}
+  .masthead-rule::before,.masthead-rule::after{content:'';display:block;height:1px;width:52px;background:var(--rule)}
+  .masthead-tagline{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-2)}
+  .alert-strip{background:var(--ink);color:var(--paper);padding:9px 20px;display:flex;align-items:center;justify-content:center;gap:10px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.13em;text-transform:uppercase;flex-wrap:wrap}
+  .alert-pip{width:5px;height:5px;border-radius:50%;background:#e05050;flex-shrink:0;animation:blink 1.6s ease-in-out infinite}
   @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
   .wrap{max-width:680px;margin:0 auto;padding:0 22px 72px}
+  .issue-kicker{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--red);padding:22px 0 8px}
+  .issue-headline{font-family:'Playfair Display',Georgia,serif;font-size:clamp(26px,5vw,40px);font-weight:900;line-height:1.08;letter-spacing:-.02em;color:var(--ink);margin-bottom:16px}
+  .opening-summary{font-size:16px;line-height:1.82;color:#2e2b27;margin-bottom:22px;border-left:3px solid var(--ink);padding-left:16px}
+  .feature-img-wrap{margin-bottom:4px;overflow:hidden;background:#e8e3db}
+  .feature-img{width:100%;height:360px;object-fit:cover;display:block}
+  @media(max-width:560px){.feature-img{height:220px}}
+  .feature-caption-bar{padding:8px 12px 10px;background:var(--paper-2);border:1px solid var(--rule);border-top:none;margin-bottom:18px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px}
+  .feature-caption-text{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--muted);line-height:1.5}
+  .feature-credit{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--muted-2);white-space:nowrap}
+  .feature-fallback{height:4px;background:var(--ink);margin-bottom:22px}
+  .market-snapshot{border:1px solid var(--rule);border-top:2px solid var(--ink);background:var(--paper-2);margin-bottom:8px}
+  .market-snapshot-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px 0}
+  .market-snapshot-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+  .market-snapshot-time{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--muted-2)}
+  .market-snapshot-grid{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rule);margin-top:8px}
+  @media(max-width:420px){.market-snapshot-grid{grid-template-columns:repeat(2,1fr)}}
+  .snapshot-cell{padding:11px 14px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+  .snapshot-cell:nth-child(3n){border-right:none}
+  .snapshot-cell:nth-last-child(-n+3){border-bottom:none}
+  @media(max-width:420px){.snapshot-cell:nth-child(3n){border-right:1px solid var(--rule)}.snapshot-cell:nth-child(2n){border-right:none}.snapshot-cell:nth-last-child(-n+3){border-bottom:1px solid var(--rule)}.snapshot-cell:nth-last-child(-n+2){border-bottom:none}}
+  .snapshot-label{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .snapshot-value{font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:var(--ink);margin-bottom:2px;line-height:1}
+  .snapshot-change{font-family:'DM Mono',monospace;font-size:11px;font-weight:500}
+  .snapshot-change.up{color:var(--green)}.snapshot-change.down{color:var(--red)}.snapshot-change.flat{color:var(--muted)}
+  .snapshot-note{font-family:'DM Mono',monospace;font-size:7.5px;color:var(--muted-2);margin-top:3px}
   .toc{border:1px solid var(--rule);border-top:2px solid var(--ink);padding:16px 20px;margin-bottom:8px}
   .toc-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
   .toc-list{list-style:none;padding:0;margin:0;columns:2;column-gap:24px}
@@ -90,39 +119,16 @@
   .sources{margin-top:36px;padding-top:14px;border-top:1px solid var(--rule);font-family:'DM Mono',monospace;font-size:9.5px;color:var(--muted);line-height:1.8}
   .sources strong{font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:8.5px}
   .footer{margin-top:24px;padding-top:16px;border-top:2px solid var(--ink);text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);line-height:1.9}
-
-  .issue-kicker{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);padding:20px 0 10px;border-bottom:1px solid var(--rule)}
-  .issue-headline{font-family:'Playfair Display',Georgia,serif;font-size:clamp(24px,5vw,38px);font-weight:900;line-height:1.1;letter-spacing:-.022em;color:var(--ink);margin:16px 0 14px}
-  .opening-summary{font-size:16.5px;line-height:1.78;color:#3d3830;border-left:3px solid var(--ink);padding-left:18px;margin-bottom:24px;font-style:italic}
-  .feature-visual{position:relative;overflow:hidden;height:180px;margin-bottom:20px}
-  .feature-visual svg{position:absolute;top:0;left:0;width:100%;height:100%}
-  .feature-visual-label{position:absolute;bottom:12px;left:16px;font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,0.45);z-index:1}
-  .feature-visual-alt{position:absolute;top:12px;right:14px;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.2)}
-  .market-snapshot{border:1px solid var(--rule);border-top:2px solid var(--ink);background:var(--paper-2);margin-bottom:8px}
-  .market-snapshot-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px 0}
-  .market-snapshot-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
-  .market-snapshot-time{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--muted-2)}
-  .market-snapshot-grid{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rule);margin-top:8px}
-  @media(max-width:420px){.market-snapshot-grid{grid-template-columns:repeat(2,1fr)}}
-  .snapshot-cell{padding:11px 14px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
-  .snapshot-cell:nth-child(3n){border-right:none}
-  .snapshot-cell:nth-last-child(-n+3){border-bottom:none}
-  @media(max-width:420px){.snapshot-cell:nth-child(3n){border-right:1px solid var(--rule)}.snapshot-cell:nth-child(2n){border-right:none}.snapshot-cell:nth-last-child(-n+3){border-bottom:1px solid var(--rule)}.snapshot-cell:nth-last-child(-n+2){border-bottom:none}}
-  .snapshot-label{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
-  .snapshot-value{font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:var(--ink);margin-bottom:2px;line-height:1}
-  .snapshot-change{font-family:'DM Mono',monospace;font-size:11px;font-weight:500}
-  .snapshot-change.up{color:var(--green)}.snapshot-change.down{color:var(--red)}.snapshot-change.flat{color:var(--muted)}
-  .snapshot-note{font-family:'DM Mono',monospace;font-size:7.5px;color:var(--muted-2);margin-top:3px}
 </style>
 </head>
 <body>
 
-<div style="background:#111010;padding:10px 0;text-align:center">
-  <a href="../index.html" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#f7f3ec;text-decoration:none;opacity:.7">← The Brief Home</a>
-  &nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="../archive.html" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#f7f3ec;text-decoration:none;opacity:.7">Archive</a>
-  &nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="../subscribe.html" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#f7f3ec;text-decoration:none;opacity:.7">Subscribe</a>
+<div class="site-nav-bar">
+  <a href="../index.html">&#8592; The Brief</a>
+  <span class="nav-sep">·</span>
+  <a href="../archive.html">Archive</a>
+  <span class="nav-sep">·</span>
+  <a href="../subscribe.html">Subscribe</a>
 </div>
 
 <div class="masthead">
@@ -137,30 +143,14 @@
 </div>
 
 <div class="wrap">
-  <div class="issue-kicker">Thursday, June 18, 2026 · Fed Watch</div>
+  <div class="issue-kicker">Fed Watch · Thursday, June 18, 2026</div>
   <h1 class="issue-headline">Warsh Sends His Message: No Cuts, Maybe Hikes, and Markets Must Adapt</h1>
-  <p class="opening-summary">Fed Chair Kevin Warsh held rates on his debut — then promptly rewired the committee’s inflation expectations, with 9 of 18 officials now penciling in a 2026 hike and every easing-bias word stripped from the statement. That hawkish shock hit markets Wednesday. Thursday brought two counterpunches: Intel surged 10% on a Trump-announced Apple chip deal, and oil fell to $75.83 as the US-Iran peace MOU signed at Versailles took effect, unlocking the Strait of Hormuz. Three massive stories, pulling in different directions — and markets have 90 days to figure out which one wins.</p>
+  <p class="opening-summary">Fed Chair Kevin Warsh held rates on his debut — then rewired the committee's inflation expectations, with 9 of 18 officials penciling in a 2026 hike and every easing-bias word stripped from the statement. Thursday brought two counterpunches: Intel surged 10% on a Trump-announced Apple chip deal, and oil fell to $75.83 as the US-Iran peace MOU signed at Versailles unlocked the Strait of Hormuz. Three massive stories, pulling in different directions — and markets have 90 days to figure out which one wins.</p>
 
-<div class="feature-visual" style="background:#060e1a">
-  <svg viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-
-  <line x1="0" y1="50" x2="680" y2="50" stroke="#0d1f33" stroke-width="1"/>
-  <line x1="0" y1="100" x2="680" y2="100" stroke="#0d1f33" stroke-width="1"/>
-  <line x1="0" y1="150" x2="680" y2="150" stroke="#0d1f33" stroke-width="1"/>
-  <path d="M 40,165 C 120,165 200,130 320,100 S 500,72 640,65"
-        fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linejoin="round"/>
-  <polygon points="40,165 120,165 200,130 320,100 500,72 640,65 680,64 680,200 0,200"
-           fill="#60a5fa" fill-opacity="0.07"/>
-  <path d="M 40,130 C 140,128 260,126 380,130 S 540,138 640,142"
-        fill="none" stroke="#60a5fa" stroke-width="1.2" stroke-dasharray="5,4" opacity="0.35"/>
-  <line x1="140" y1="30" x2="140" y2="185" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,3" opacity="0.55"/>
-  <text x="146" y="48" fill="#f59e0b" font-size="9" font-family="monospace" opacity="0.75">FOMC</text>
-  <line x1="390" y1="30" x2="390" y2="185" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,3" opacity="0.35"/>
-  <text x="396" y="48" fill="#f59e0b" font-size="9" font-family="monospace" opacity="0.5">NEXT</text>
-  </svg>
-  <div class="feature-visual-label">Fed & Rates</div>
-  <div class="feature-visual-alt">Abstract rate curve art — Fed policy and Treasury yield theme</div>
+<div class="feature-img-wrap">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/US_Federal_Reserve_Eccles_Building_1937.jpg/1280px-US_Federal_Reserve_Eccles_Building_1937.jpg" alt="The Marriner S. Eccles Federal Reserve Board Building in Washington, D.C., 1937" class="feature-img" loading="lazy" onerror="this.closest('.feature-img-wrap').style.display='none'">
 </div>
+<div class="feature-caption-bar"><span class="feature-caption-text">The Marriner S. Eccles Building, Washington D.C. — headquarters of the Federal Reserve Board.</span><a href="https://commons.wikimedia.org/wiki/File:US_Federal_Reserve_Eccles_Building_1937.jpg" target="_blank" rel="noopener" class="feature-credit">Photo: Wikimedia Commons / Public Domain</a></div>
 
 <div class="market-snapshot">
   <div class="market-snapshot-header"><span class="market-snapshot-label">Market Snapshot</span><span class="market-snapshot-time">At Close</span></div>
@@ -195,7 +185,7 @@
   <div class="section-label"><span class="section-num">00</span> Smart in 30 Seconds</div>
   <div class="smart30">
     <div class="smart30-label">The whole issue in a paragraph</div>
-    <p>Fed Chair Kevin Warsh made his policy debut and delivered a hawkish jolt: rates held at 3.50&ndash;3.75%, but 9 of 18 FOMC officials now project a 2026 hike &mdash; and Warsh stripped every easing-bias word from the statement. The S&amp;P 500 dropped 1.2% Wednesday, its worst Fed-day debut since 1994. Thursday brought a partial recovery, fueled by two separate catalysts: Trump announced on Truth Social that Apple agreed to work with Intel to design and build chips domestically, sending Intel surging over 10%; simultaneously, the US-Iran peace MOU signed at Versailles took effect, lifting the Strait of Hormuz naval blockade and pushing WTI crude to $75.83 &mdash; down 38% from its April peak. The irony of the week: Warsh&rsquo;s hawkish signal and the Iran peace deal are pulling the inflation outlook in opposite directions, and markets will be pricing that binary through end-of-month PCE data.</p>
+    <p>Fed Chair Kevin Warsh made his policy debut and delivered a hawkish jolt: rates held at 3.50&ndash;3.75%, but 9 of 18 FOMC officials now project a 2026 hike &mdash; and Warsh stripped every easing-bias word from the statement. The S&amp;P 500 dropped 1.2% Wednesday, its worst Fed-day debut since 1994. Thursday brought a partial recovery, fueled by two separate catalysts: Trump announced on Truth Social that Apple agreed to work with Intel to design and build chips domestically, sending Intel surging over 10%; simultaneously, the US-Iran peace MOU signed at Versailles took effect, lifting the Strait of Hormuz naval blockade and pushing WTI crude to $75.83 &mdash; down 38% from its April peak. Three massive stories, pulling in different directions &mdash; and markets have 90 days to figure out which one wins.</p>
   </div>
 </section>
 
@@ -204,30 +194,30 @@
   <h2>Three Seismic Signals in 24 Hours: Warsh, Hormuz, and the Intel Revival</h2>
   <div class="dev-item">
     <div class="dev-category">Monetary Policy &mdash; The Warsh Hawkish Shock</div>
-    <p>The Fed&rsquo;s June FOMC meeting &mdash; Warsh&rsquo;s first &mdash; concluded Wednesday with a unanimous hold at 3.50&ndash;3.75%. But the rate decision was far from the real story. The dot plot shifted sharply: the median year-end 2026 projection jumped from 3.4% to 3.8%, with 9 of 18 officials signaling rates should finish the year above the current range. Warsh declined to submit his own dot &mdash; citing philosophical opposition to forward guidance as a policy tool &mdash; and pared the post-meeting statement to just 130 words, stripping all easing-bias language.</p>
+    <p>The Fed&rsquo;s June FOMC meeting &mdash; Warsh&rsquo;s first &mdash; concluded Wednesday with a unanimous hold at 3.50&ndash;3.75%. But the rate decision was far from the real story. The dot plot shifted sharply: the median year-end 2026 projection jumped from 3.4% to 3.8%, with 9 of 18 officials signaling rates should finish the year above the current range. Warsh declined to submit his own dot &mdash; citing philosophical opposition to forward guidance &mdash; and pared the post-meeting statement to just 130 words, stripping all easing-bias language.</p>
     <p>The market reaction was immediate. The S&amp;P 500 shed 1.2% &mdash; its worst Fed-day performance for a new chair&rsquo;s first meeting since 1994. The 2-year Treasury yield surged 14 basis points to 4.19%; the 10-year rose 7 basis points to 4.49%. All 11 S&amp;P 500 sectors closed red Wednesday.</p>
   </div>
   <div class="dev-item">
     <div class="dev-category">Industrial Policy &mdash; Trump Announces Intel-Apple Domestic Chip Deal</div>
-    <p>In the early hours of Thursday, President Trump posted on Truth Social that Apple agreed to work with Intel to design and build its chips in the United States. Intel surged more than 10% in premarket &mdash; adding to a 228% YTD gain that already reflects strong Q1 results (revenue +7% to $13.6B, Data Center &amp; AI +22%). The deal, if formalized, would see Apple diversify chip manufacturing away from TSMC and onto Intel&rsquo;s 18A-P process node, which Intel says delivers 9% higher performance and 18% lower power versus standard 18A. No formal announcement was issued by either company; analysts noted the stock is pricing in revenue that could be 12&ndash;18 months away.</p>
+    <p>President Trump posted on Truth Social that Apple agreed to work with Intel to design and build its chips in the United States. Intel surged more than 10% in premarket &mdash; adding to a 228% YTD gain that reflects strong Q1 results (revenue +7% to $13.6B, Data Center &amp; AI +22%). The deal would see Apple diversify chip manufacturing away from TSMC onto Intel&rsquo;s 18A-P process node, which Intel says delivers 9% higher performance and 18% lower power. No formal statement was issued by either company; analysts noted the stock is pricing in revenue that could be 12&ndash;18 months away.</p>
   </div>
   <div class="dev-item">
     <div class="dev-category">Geopolitics &mdash; US-Iran MOU Signed; Strait of Hormuz Set to Reopen</div>
-    <p>Trump and Iranian President Pezeshkian signed a 14-point MOU Wednesday evening at the Palace of Versailles, formally ending the US-Israel conflict with Iran that began February 28. The MOU declares an immediate halt to military operations, commits both sides to a final deal within 60 days, and obligates Iran to arrange safe passage through the Strait of Hormuz. Trump simultaneously ordered the removal of the US naval blockade of Iranian ports.</p>
-    <p>WTI crude fell to $75.83 on Thursday &mdash; down roughly 38% from April&rsquo;s conflict-peak. The IEA warned the Hormuz reopening could push the global oil market into significant supply surplus by 2027, with global supply projected to rise 8 million bpd against demand growth of just 2 million bpd.</p>
+    <p>Trump and Iranian President Pezeshkian signed a 14-point MOU Wednesday evening at the Palace of Versailles, formally ending the US-Israel conflict with Iran that began February 28. The MOU declares an immediate halt to military operations and obligates Iran to arrange safe passage through the Strait of Hormuz. Trump simultaneously ordered removal of the US naval blockade of Iranian ports.</p>
+    <p>WTI crude fell to $75.83 on Thursday &mdash; down roughly 38% from April&rsquo;s conflict peak. The IEA warned the Hormuz reopening could push the global oil market into significant supply surplus by 2027, with global supply projected to rise 8 million bpd against demand growth of just 2 million bpd.</p>
   </div>
   <div class="dev-item">
     <div class="dev-category">Macro Data &mdash; PPI Points to Firm PCE Ahead</div>
-    <p>This morning&rsquo;s Producer Price Index data showed that PCE-sensitive components remain firm &mdash; only the air transport component declined. May PCE is due end of month and will serve as a critical input to the September FOMC. RSM has flagged September as a &ldquo;live&rdquo; policy meeting where the committee could move for the first time since 2023.</p>
+    <p>This morning&rsquo;s Producer Price Index data showed PCE-sensitive components remain firm &mdash; only the air transport component declined. May PCE is due end of month and will serve as the critical input to the September FOMC. RSM has flagged September as a &ldquo;live&rdquo; policy meeting where the committee could move for the first time since 2023.</p>
   </div>
 </section>
 
 <section class="section" id="s02">
   <div class="section-label"><span class="section-num">02</span> Why It Mattered</div>
   <h2>The End of Dovish Assumptions &mdash; and the Start of a More Uncertain Market</h2>
-  <p>Wednesday&rsquo;s Fed meeting was not just a policy hold. It was a communication overhaul with market-moving consequences. For more than a year, investors had priced in a Fed gradually moving toward easier policy &mdash; the so-called &ldquo;easing bias&rdquo; embedded in every FOMC statement. Warsh ripped that language out in his first act as chair. By stripping forward guidance, he simultaneously removed a key anchor for equity valuations and raised the probability distribution of outcomes for rates. Markets don&rsquo;t like uncertainty; they discount it, and that&rsquo;s exactly what happened Wednesday.</p>
-  <p>The hawkish dot-plot shift matters because inflation hasn&rsquo;t cooperated. Core inflation is hovering around 4.2% year-over-year &mdash; well above the Fed&rsquo;s 2% target and above virtually every inflation metric the Fed tracks. That means real rates are still negative on some measures, and a committee genuinely committed to price stability &mdash; as Warsh&rsquo;s terse statement implied &mdash; has reason to act if inflation doesn&rsquo;t cool. September is now a live meeting.</p>
-  <p>The Iran MOU carries profound second-order effects beyond oil prices. The Strait of Hormuz had been effectively closed since February 28, blocking an estimated 14 million barrels per day of Middle Eastern output. The reopening represents a massive supply-side unlock that changes the global inflation calculus. Lower energy prices reduce headline CPI, ease transportation costs, and could give the Fed more breathing room than its hawkish dot plot implies. The irony: the Iran deal may be the single most powerful disinflationary event of 2026 &mdash; arriving the same week Warsh sounded his most hawkish note.</p>
+  <p>Wednesday&rsquo;s Fed meeting was not just a policy hold. It was a communication overhaul with market-moving consequences. For more than a year, investors had priced in a Fed gradually moving toward easier policy &mdash; the &ldquo;easing bias&rdquo; embedded in every FOMC statement. Warsh ripped that language out in his first act as chair. By stripping forward guidance, he simultaneously removed a key anchor for equity valuations and raised the probability distribution of outcomes for rates. Markets don&rsquo;t like uncertainty; they discount it, and that&rsquo;s exactly what happened Wednesday.</p>
+  <p>The hawkish dot-plot shift matters because inflation hasn&rsquo;t cooperated. Core inflation is hovering around 4.2% year-over-year &mdash; well above the Fed&rsquo;s 2% target. That means real rates are still negative on some measures, and a committee genuinely committed to price stability &mdash; as Warsh&rsquo;s terse statement implied &mdash; has reason to act if inflation doesn&rsquo;t cool. September is now a live meeting.</p>
+  <p>The Iran MOU carries profound second-order effects. The Strait of Hormuz had been effectively closed since February 28, blocking an estimated 14 million barrels per day. The reopening represents a massive supply-side unlock that changes the global inflation calculus. Lower energy prices reduce headline CPI and could give the Fed more breathing room than its hawkish dot plot implies. The irony: the Iran deal may be the single most powerful disinflationary event of 2026 &mdash; arriving the same week Warsh sounded his most hawkish note.</p>
   <div class="aside">The 10-year vs. 2-year Treasury spread stands at +29 basis points &mdash; a positively sloped curve reflecting a cautious growth outlook and persistent inflation. The 30-year Treasury at 4.93% historically pressures mortgage markets and long-duration equity valuations.</div>
 </section>
 
@@ -237,15 +227,15 @@
   <div class="chain">
     <div class="chain-row">
       <div class="chain-label">Warsh Fed Pivot</div>
-      <div class="chain-text">Hawkish dot plot (9/18 project hike) + easing bias removed <span class="arr">→</span> 2-year yield +14 bps, 10-year +7 bps Wednesday <span class="arr">→</span> higher discount rates compress P/E multiples on growth stocks <span class="arr">→</span> Nasdaq &minus;1.34% Wednesday, all 11 S&amp;P sectors red <span class="arr">→</span> Watch: September FOMC now live; end-of-month PCE is the decisive data point</div>
+      <div class="chain-text">Hawkish dot plot (9/18 project hike) + easing bias removed <span class="arr">→</span> 2-year yield +14 bps, 10-year +7 bps Wednesday <span class="arr">→</span> higher discount rates compress P/E multiples on growth stocks <span class="arr">→</span> Nasdaq &minus;1.34% Wednesday, all 11 S&amp;P sectors red <span class="arr">→</span> Watch: September FOMC now live; end-of-month PCE is decisive</div>
     </div>
     <div class="chain-row">
       <div class="chain-label">Intel-Apple Deal</div>
-      <div class="chain-text">Trump Truth Social post confirms Apple-Intel chip manufacturing agreement <span class="arr">→</span> Intel premarket +9%; Intel Foundry gains commercial credibility <span class="arr">→</span> semiconductor supply chain diversification away from TSMC re-rated <span class="arr">→</span> broader chip sector partially recovered Thursday <span class="arr">→</span> Watch: Intel Q2 earnings July 23 &mdash; first hard data on foundry revenue</div>
+      <div class="chain-text">Trump Truth Social post confirms Apple-Intel chip manufacturing agreement <span class="arr">→</span> Intel premarket +9%, Intel Foundry gains commercial credibility <span class="arr">→</span> semiconductor supply chain diversification away from TSMC re-rated <span class="arr">→</span> broader chip sector partially recovered Thursday <span class="arr">→</span> Watch: Intel Q2 earnings July 23 &mdash; first hard data on foundry revenue</div>
     </div>
     <div class="chain-row">
       <div class="chain-label">US-Iran MOU</div>
-      <div class="chain-text">MOU signed at Versailles; US naval blockade lifted; Hormuz to reopen <span class="arr">→</span> WTI falls to $75.83 (&minus;38% from April peak), Brent ~$77.22 <span class="arr">→</span> lower energy prices reduce headline inflation globally <span class="arr">→</span> eases Fed tightening pressure over medium term; airline/transport costs fall <span class="arr">→</span> Watch: IEA supply surplus projection for 2027; 60-day nuclear talks window</div>
+      <div class="chain-text">MOU signed at Versailles; US naval blockade lifted; Hormuz to reopen <span class="arr">→</span> WTI falls to $75.83 (&minus;38% from April peak) <span class="arr">→</span> lower energy prices reduce headline inflation globally <span class="arr">→</span> eases Fed tightening pressure over medium term <span class="arr">→</span> Watch: IEA supply surplus projection; 60-day nuclear talks window</div>
     </div>
   </div>
 </section>
@@ -264,16 +254,16 @@
     </div>
     <div class="grid-card">
       <div class="card-label">For the Economy</div>
-      <p>The macro backdrop is genuinely mixed. The Iran peace deal is a substantial disinflationary shock; oil is down 38% from April highs. But core inflation sits at ~4.2%, the PPI data suggests a firm PCE print is coming, and the May jobs report (+172K vs. +80K expected) gives the Fed little justification to ease. The Beige Book described consumer spending as increasingly bifurcated, with middle-income households &ldquo;squeezing more life out of every dollar.&rdquo;</p>
+      <p>The macro backdrop is genuinely mixed. The Iran peace deal is a substantial disinflationary shock; oil is down 38% from April highs. But core inflation sits at ~4.2%, the PPI data suggests a firm PCE print is coming, and the May jobs report (+172K vs. +80K expected) gives the Fed little justification to ease. Consumer spending is increasingly bifurcated by income cohort.</p>
     </div>
     <div class="grid-card">
       <div class="card-label">What to Watch</div>
-      <p>Five upcoming catalysts: (1) May PCE price index, due end of June &mdash; the decisive September FOMC input. (2) Intel Q2 earnings, July 23 &mdash; first read on foundry external revenue. (3) Strait of Hormuz reopening pace &mdash; determines how fast Middle East supply normalizes. (4) Micron and FedEx earnings next week &mdash; AI demand and freight bellwethers. (5) Q1 GDP revision, also end of month.</p>
+      <p>Five upcoming catalysts: (1) May PCE price index, due end of June &mdash; the decisive September FOMC input. (2) Intel Q2 earnings, July 23 &mdash; first read on foundry external revenue. (3) Strait of Hormuz reopening pace. (4) Micron and FedEx earnings next week. (5) Q1 GDP revision, also end of month.</p>
     </div>
   </div>
   <div class="watch">
     <div class="watch-label">Key Risk: September FOMC &mdash; The First Live Hike Decision Under Warsh</div>
-    <p>With 9 of 18 FOMC participants projecting a 2026 hike and the easing bias officially gone, the September meeting is the first genuine decision point. The median dot now shows rates ending 2026 at 3.8% &mdash; a 25 bp hike from today. What happens between now and September determines whether that materializes: firm PCE gives the hawks cover; a sharp oil-driven CPI decline gives the holds-camp the upper hand. Markets will price this binary for the next 90 days.</p>
+    <p>With 9 of 18 FOMC participants projecting a 2026 hike and the easing bias officially gone, September is the first genuine decision point. The median dot now shows rates ending 2026 at 3.8% &mdash; a 25 bp hike from today. Firm PCE gives the hawks cover; a sharp oil-driven CPI decline gives the holds-camp the upper hand. Markets will price this binary for the next 90 days.</p>
   </div>
 </section>
 
@@ -283,19 +273,19 @@
   <div class="sector-grid">
     <div class="sector-card winning">
       <div class="sector-name">Semiconductors / Technology <span class="sector-badge badge-win">Winning</span></div>
-      <p>Intel&rsquo;s 10%+ surge on the Trump-announced Apple chip deal lifted the broader semiconductor complex, partially reversing Wednesday&rsquo;s hawkish selloff. Nvidia and AMD stabilized. The Intel-Apple news is the most significant commercial win for US domestic semiconductor manufacturing in years and could accelerate supply chain reshoring conversations across the sector.</p>
+      <p>Intel&rsquo;s 10%+ surge on the Trump-announced Apple chip deal lifted the broader semiconductor complex, partially reversing Wednesday&rsquo;s hawkish selloff. Nvidia and AMD stabilized. The Intel-Apple news is the most significant commercial win for US domestic semiconductor manufacturing in years.</p>
     </div>
     <div class="sector-card losing">
       <div class="sector-name">Energy <span class="sector-badge badge-lose">Losing</span></div>
-      <p>Energy is the week&rsquo;s clear sector loser. WTI fell to $75.83 &mdash; down ~38% from April&rsquo;s conflict peak &mdash; as the Iran MOU took effect and the Hormuz reopening began. The IEA projected a potential global supply surplus of 6 million bpd by 2027. Integrated oils, refiners, and oilfield services names all face a structurally changed pricing backdrop for the next 60&ndash;90 days.</p>
+      <p>Energy is the week&rsquo;s clear sector loser. WTI fell to $75.83 &mdash; down ~38% from April&rsquo;s conflict peak &mdash; as the Iran MOU took effect and the Hormuz reopening began. Integrated oils, refiners, and oilfield services names all face a structurally changed pricing backdrop for the next 60&ndash;90 days.</p>
     </div>
     <div class="sector-card losing">
-      <div class="sector-name">Rates-Sensitive Growth / Long Duration <span class="sector-badge badge-lose">Losing</span></div>
-      <p>Wednesday&rsquo;s 7 bp spike in the 10-year hit long-duration growth stocks hardest. SaaS, fintech, and speculative tech saw the sharpest declines. Higher discount rates mechanically compress the present value of distant cash flows, and with the Fed&rsquo;s easing bias officially removed, the structural support that anchored growth-stock P/E expansion since the tariff recovery is weaker.</p>
+      <div class="sector-name">Rates-Sensitive Growth <span class="sector-badge badge-lose">Losing</span></div>
+      <p>Wednesday&rsquo;s 7 bp spike in the 10-year hit long-duration growth stocks hardest. SaaS, fintech, and speculative tech saw the sharpest declines. Higher discount rates mechanically compress the present value of distant cash flows, and with the easing bias officially removed, structural support for growth P/E expansion is weaker.</p>
     </div>
     <div class="sector-card mixed">
       <div class="sector-name">Consumer Staples / Defensives <span class="sector-badge badge-watch">Watch</span></div>
-      <p>Defensives held up better than growth amid Wednesday&rsquo;s hawkish shock, continuing a rotation pattern visible since early June. Lower oil prices are a net positive for staples margins &mdash; fuel costs in logistics and packaging are significant inputs. But these sectors face a headwind from higher-for-longer rates, as their bond-proxy characteristics make them less attractive when yields are elevated.</p>
+      <p>Defensives held up better than growth amid Wednesday&rsquo;s hawkish shock, continuing a rotation pattern visible since early June. Lower oil prices are a net positive for staples margins. But their bond-proxy characteristics make them less attractive when yields are elevated.</p>
     </div>
   </div>
 </section>
@@ -305,20 +295,20 @@
   <h2>What People in Finance Are Actually Thinking About Today</h2>
   <div class="career-universal">
     <div class="career-universal-label">Across all tracks</div>
-    <p>This week crystallized a concept every finance professional needs to internalize: the Fed is not just a rate-setting body &mdash; it is a communication machine, and how it communicates is itself a policy variable. Warsh&rsquo;s decision to strip forward guidance and decline to submit a dot changed market expectations as much as any actual rate move would have. <em>The ability to explain the difference between a rate action and a communication action is a genuine marker of sophistication &mdash; in an interview and with a client.</em></p>
+    <p>This week crystallized a concept every finance professional needs to internalize: the Fed is not just a rate-setting body &mdash; it is a communication machine, and how it communicates is itself a policy variable. Warsh&rsquo;s decision to strip forward guidance and decline to submit a dot changed market expectations as much as any actual rate move would have. <em>The ability to explain the difference between a rate action and a communication action is a genuine marker of sophistication.</em></p>
   </div>
   <div class="career-grid">
     <div class="career-card">
       <div class="career-path">Wealth Management &amp; Private Banking</div>
-      <p>Your HNW clients are asking two questions: Is this rally sustainable? And should I be reducing duration in fixed income? The honest answer to the first: the rally is narrower than it looks &mdash; 58% breadth vs. 80% earlier in 2026. For the second: the 4.49% 10-year is the most attractive entry point since early March, and the Iran deal is a genuine windfall for energy-importing economies and consumer spending power. For clients in the 55+ bracket with significant bond allocations, this is a wealth-preservation story, not just a trading one.</p>
+      <p>Your HNW clients are asking two questions: Is this rally sustainable? And should I be reducing duration in fixed income? The honest answer to the first: the rally is narrower than it looks &mdash; 58% breadth vs. 80% earlier in 2026. For the second: the 4.49% 10-year is the most attractive entry point since early March, and the Iran deal is a genuine windfall for energy-importing economies and consumer spending power.</p>
     </div>
     <div class="career-card">
       <div class="career-path">Equity Research</div>
-      <p>Intel is the single most interesting modeling exercise right now. The stock has surged 228% YTD to ~$121, but analyst consensus price targets cluster around $82&ndash;$93 &mdash; a massive disconnect. The Apple foundry relationship, if formally confirmed, would require a complete rebuild of Intel Foundry revenue estimates for 2027&ndash;2028. Watch the Q2 earnings call on July 23 specifically for language on &ldquo;foundry customer commitments&rdquo; &mdash; that&rsquo;s the line item that either validates or deflates the current multiple.</p>
+      <p>Intel is the single most interesting modeling exercise right now. The stock has surged 228% YTD to ~$121, but analyst consensus price targets cluster around $82&ndash;$93 &mdash; a massive disconnect. The Apple foundry relationship, if formally confirmed, would require a complete rebuild of Intel Foundry revenue estimates for 2027&ndash;2028. Watch the Q2 earnings call on July 23 specifically for language on &ldquo;foundry customer commitments.&rdquo;</p>
     </div>
     <div class="career-card">
       <div class="career-path">Investment Banking</div>
-      <p>The US-Iran MOU is one of the most consequential geopolitical events for capital markets in 2026. It unlocks a wave of deal activity: Middle Eastern SWFs that paused cross-border M&amp;A during the conflict will re-engage; energy-sector consolidation is likely. The Intel-Apple deal also has IB implications &mdash; Intel Foundry could seek external capital. SpaceX&rsquo;s $75B IPO (priced at $135/share last week) and Alphabet&rsquo;s $80B capital raise are also live in the market, absorbing significant institutional bandwidth.</p>
+      <p>The US-Iran MOU is one of the most consequential geopolitical events for capital markets in 2026. It unlocks a wave of deal activity: Middle Eastern SWFs that paused cross-border M&amp;A during the conflict will re-engage; energy-sector consolidation is likely. SpaceX&rsquo;s $75B IPO (priced at $135/share last week) and Alphabet&rsquo;s $80B capital raise are also live in the market, absorbing significant institutional bandwidth.</p>
     </div>
   </div>
 </section>
@@ -328,11 +318,11 @@
   <h2>What to Actually Use in a Conversation</h2>
   <div class="interview-box">
     <ul>
-      <li><strong>On the Fed: Separate the rate decision from the communication decision.</strong> The sophisticated answer isn&rsquo;t &ldquo;the Fed held rates.&rdquo; It&rsquo;s: &ldquo;Warsh&rsquo;s first meeting was a communication overhaul &mdash; he stripped the easing bias, declined to submit a dot, and let the committee&rsquo;s projections do the hawkish work for him. The policy rate didn&rsquo;t move, but the market&rsquo;s expected path of rates shifted meaningfully. That&rsquo;s how communication IS monetary policy.&rdquo;</li>
-      <li><strong>On the dot plot: Know what it is and what it isn&rsquo;t.</strong> The dot plot shows where each FOMC participant thinks rates should be &mdash; not where they will be. Nine of 18 participants placed their dot above today&rsquo;s range, moving the median year-end projection from 3.4% to 3.8%. But Warsh himself has publicly questioned the dot plot&rsquo;s value &mdash; demonstrating awareness of that tension shows genuine depth.</li>
+      <li><strong>On the Fed: Separate the rate decision from the communication decision.</strong> The sophisticated answer isn&rsquo;t &ldquo;the Fed held rates.&rdquo; It&rsquo;s: &ldquo;Warsh&rsquo;s first meeting was a communication overhaul &mdash; he stripped the easing bias, declined to submit a dot, and let the committee&rsquo;s projections do the hawkish work for him. The policy rate didn&rsquo;t move, but the market&rsquo;s expected path of rates shifted meaningfully.&rdquo;</li>
+      <li><strong>On the dot plot: Know what it is and what it isn&rsquo;t.</strong> Nine of 18 participants placed their dot above today&rsquo;s range, moving the median year-end projection from 3.4% to 3.8%. But Warsh himself has publicly questioned the dot plot&rsquo;s value &mdash; demonstrating awareness of that tension shows genuine depth.</li>
       <li><strong>On Intel: Understand the foundry business model before praising the stock.</strong> Intel is simultaneously a chip designer AND a manufacturer. Most competitors use TSMC because it&rsquo;s better. If Intel wins Apple&rsquo;s business, it&rsquo;s commercial proof that the 18A node is competitive. But analyst targets are $82&ndash;$93 on a $121 stock. Knowing what would need to be true for the current price to be justified shows analytical depth.</li>
-      <li><strong>On the Iran deal: Connect geopolitics to inflation to monetary policy.</strong> The Strait of Hormuz had been blocking ~14 million bpd of supply. Oil is down 38% from April highs. Lower oil = lower headline CPI = potentially less pressure on the Fed to hike. The elegant insight: the Iran MOU and Warsh&rsquo;s hawkish dot plot are pulling the inflation outlook in opposite directions &mdash; markets are trying to price the net effect in real time.</li>
-      <li><strong>On portfolio construction: The 4.49% 10-year is a real allocation question.</strong> A 4.49% risk-free rate changes the denominator in every valuation, raises the hurdle rate for equity risk premium, and makes a 60/40 portfolio genuinely competitive again in ways it hasn&rsquo;t been for years. That&rsquo;s the strategic framing HNW advisors are having with clients right now.</li>
+      <li><strong>On the Iran deal: Connect geopolitics to inflation to monetary policy.</strong> The Strait of Hormuz had been blocking ~14 million bpd of supply. Oil is down 38% from April highs. Lower oil = lower headline CPI = potentially less pressure on the Fed to hike. The elegant insight: the Iran MOU and Warsh&rsquo;s hawkish dot plot are pulling the inflation outlook in opposite directions &mdash; markets are pricing the net effect in real time.</li>
+      <li><strong>On portfolio construction: The 4.49% 10-year is a real allocation question.</strong> A 4.49% risk-free rate changes the denominator in every valuation, raises the hurdle rate for equity risk premium, and makes a 60/40 portfolio genuinely competitive again. That&rsquo;s the strategic framing HNW advisors are having with clients right now.</li>
     </ul>
   </div>
 </section>
@@ -341,9 +331,8 @@
   <div class="section-label"><span class="section-num">08</span> Term of the Day</div>
   <div class="term">
     <div class="term-word">The Dot Plot (Summary of Economic Projections)</div>
-    <p>The dot plot is the Federal Reserve&rsquo;s quarterly publication of individual FOMC participants&rsquo; forecasts for the future path of the federal funds rate. Each participant submits their projection for where they believe rates should be at year-end for the current year, one year out, two years out, and in the &ldquo;longer run.&rdquo; The chart plots these as individual dots &mdash; hence the name. The median dot is the figure most cited by markets as the Fed&rsquo;s signal on future rate direction.</p>
-    <p>Today&rsquo;s issue makes the dot plot essential knowledge. The June 2026 dot plot revised the median year-end projection from 3.4% to 3.8% &mdash; a 25 bp hike baked into the committee&rsquo;s central projection. More importantly, 9 of 18 participants placed their dot above the current range, meaning a majority of the committee thinks a hike is warranted before year-end. That shift caused the S&amp;P 500 to drop 1.2% and Treasury yields to spike on Wednesday.</p>
-    <p>Here&rsquo;s where it gets interesting: Warsh is a well-documented critic of the dot plot. He declined to submit his own projection and has suggested the tool could &ldquo;distort the market&rsquo;s price discovery function.&rdquo; So you have a chair who wants to potentially dismantle the tool that just delivered his hawkish message to markets. For wealth management professionals, the practical implication is straightforward: when dots shift hawkish, bond prices fall and long-duration allocations underperform. When dots shift dovish, the opposite occurs. Understanding the mechanism &mdash; and its limitations &mdash; is what distinguishes a capable advisor from someone just reading Bloomberg headlines.</p>
+    <p>The dot plot is the Federal Reserve&rsquo;s quarterly publication of individual FOMC participants&rsquo; forecasts for the future path of the federal funds rate. Each participant submits their projection for where they believe rates should be at year-end &mdash; current year, one year out, two years out, and in the &ldquo;longer run.&rdquo; The chart plots these as individual dots. The median dot is the figure most cited by markets as the Fed&rsquo;s signal on future rate direction.</p>
+    <p>Today&rsquo;s issue makes the dot plot essential knowledge. The June 2026 dot plot revised the median year-end projection from 3.4% to 3.8% &mdash; a 25 bp hike baked into the committee&rsquo;s central projection. Nine of 18 participants placed their dot above the current range. That shift caused the S&amp;P 500 to drop 1.2% and Treasury yields to spike. Yet Warsh &mdash; a well-documented critic of the dot plot &mdash; declined to submit his own projection, suggesting the tool he may eventually eliminate just delivered his hawkish message for him. For wealth management professionals, the practical implication is simple: when dots shift hawkish, bond prices fall and long-duration allocations underperform. When dots shift dovish, the opposite occurs.</p>
   </div>
 </section>
 
@@ -352,19 +341,19 @@
   <h2>For your next interview, coffee chat, or networking call</h2>
   <div class="say">
     <span class="say-context">If asked about markets this week &mdash; WM interview, networking call, or coffee chat</span>
-    <p>&ldquo;What struck me most wasn&rsquo;t the Fed holding rates &mdash; that was fully priced. It was the three-way collision happening simultaneously: Warsh removing the easing bias and letting 9 of 18 committee members signal a hike; oil collapsing 38% from April highs as the US-Iran MOU took formal effect; and Intel surging 10% on what amounts to a presidential social media post about an Apple foundry deal that hasn&rsquo;t been officially confirmed. Each story is big in isolation. Together they create an environment where the disinflationary impulse from energy and the hawkish impulse from the Fed are pointing in opposite directions &mdash; and the net outcome for September depends on which wins. I think the Iran deal is actually the most underappreciated story of the week from a fixed income and portfolio construction standpoint. Lower oil takes pressure off headline CPI, which gives Warsh political cover to hold in September even with half his committee leaning toward hiking. The question I keep coming back to: does the market eventually decide this is a goldilocks scenario, or does the loss of forward guidance itself become a source of volatility?&rdquo;</p>
+    <p>&ldquo;What struck me most wasn&rsquo;t the Fed holding rates &mdash; that was fully priced. It was the three-way collision happening simultaneously: Warsh removing the easing bias and letting 9 of 18 committee members signal a hike; oil collapsing 38% from April highs as the US-Iran MOU took formal effect; and Intel surging 10% on what amounts to a presidential social media post about an Apple foundry deal that hasn&rsquo;t been officially confirmed. The disinflationary impulse from energy and the hawkish impulse from the Fed are pointing in opposite directions &mdash; and the net outcome for September depends on which wins. I think the Iran deal is actually the most underappreciated story of the week from a fixed income and portfolio construction standpoint.&rdquo;</p>
   </div>
 </section>
 
 <div class="sources">
   <strong>Sources</strong><br>
-  CNBC &middot; Schwab Market Update (June 18, 2026) &middot; RSM Real Economy Blog &middot; Investing.com &middot; Trading Economics &middot; StreetStats Finance &middot; Yahoo Finance &middot; Bloomberg &middot; Reuters &middot; NBC News &middot; RFE/RL &middot; Energy Connects &middot; Oilprice.com &middot; FRED / St. Louis Fed
+  CNBC &middot; Schwab Market Update (June 18, 2026) &middot; RSM Real Economy Blog &middot; Investing.com &middot; Trading Economics &middot; Yahoo Finance &middot; Bloomberg &middot; Reuters &middot; NBC News &middot; RFE/RL &middot; Energy Connects &middot; FRED / St. Louis Fed
 </div>
 
-  <div style="margin-top:32px;border-top:2px solid #111010;padding-top:28px;display:flex;flex-direction:column;gap:12px">
+  <div style="margin-top:40px;border-top:2px solid #111010;padding-top:28px;display:flex;flex-direction:column;gap:12px">
     <div style="display:flex;gap:12px;flex-wrap:wrap">
       <a href="../subscribe.html" style="flex:1;min-width:160px;display:block;background:#111010;color:#f7f3ec;text-align:center;padding:14px 20px;font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;text-decoration:none">Subscribe — It's Free</a>
-      <a href="../archive.html" style="flex:1;min-width:160px;display:block;border:1px solid #111010;color:#111010;text-align:center;padding:14px 20px;font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;text-decoration:none">Browse All Issues</a>
+      <a href="../archive.html" style="flex:1;min-width:160px;display:block;border:1.5px solid #111010;color:#111010;text-align:center;padding:14px 20px;font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;text-decoration:none">Browse All Issues</a>
     </div>
     <div style="text-align:center;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#7a7168">
       Share on
