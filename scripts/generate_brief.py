@@ -60,6 +60,32 @@ REQUIRED_FIELDS = [
 # ── Safe image source types ────────────────────────────────────────────────────
 SAFE_IMAGE_TYPES = {"wikimedia", "press", "unsplash", "pexels", "none"}
 
+# ── Domains that must never supply images ──────────────────────────────────────
+# Copyrighted news/photo agencies and stock libraries that do not grant reuse rights.
+BLOCKED_IMAGE_DOMAINS = [
+    # Stock / rights-managed photo agencies
+    "gettyimages.com", "shutterstock.com", "alamy.com",
+    "istockphoto.com", "dreamstime.com", "123rf.com", "depositphotos.com",
+    # News wire / agency photo services
+    "apimages.com", "ap.org",
+    "reuters.com",          # also catches reuters.com/resizer
+    "afp.com", "afpforum.com",
+    # Financial & business news with proprietary photo desks
+    "bloomberg.com", "bloomberg.net",
+    "wsj.com", "dowjones.com",
+    "ft.com",
+    "cnbc.com",
+    "nytimes.com", "nyti.ms",
+    "nbcnews.com",
+    "bbc.co.uk", "bbc.com",
+    "marketwatch.com",
+    "businessinsider.com",
+    "seekingalpha.com",
+    "theatlantic.com",
+    "washingtonpost.com",
+    "economist.com",
+]
+
 # ── Full inline CSS for brief pages ───────────────────────────────────────────
 BRIEF_CSS = """
   :root{--ink:#111010;--paper:#f7f3ec;--paper-2:#ede8df;--rule:#d5cfc4;--red:#b02020;--gold:#8a6710;--gold-bg:#faf4e4;--green:#1a5432;--green-bg:#edf6f1;--muted:#7a7168;--muted-2:#a09585}
@@ -357,13 +383,18 @@ def validate(data: dict) -> None:
         print(f"ERROR: Claude reported a failure: {data['error']}")
         sys.exit(1)
 
+    # All image fields are optional when no safe image is available
+    IMAGE_OPTIONAL_FIELDS = {
+        "feature_image_url", "feature_image_alt", "feature_image_caption",
+        "feature_image_credit", "feature_image_source_url",
+    }
+
     def field_missing(f: str) -> bool:
         val = data.get(f)
         if val is None:
             return True
-        # feature_image_url is allowed to be an empty string (means no safe image)
-        if f == "feature_image_url":
-            return False
+        if f in IMAGE_OPTIONAL_FIELDS:
+            return False   # empty string is fine — means no image
         if isinstance(val, str) and not val.strip():
             return True
         return False
@@ -374,24 +405,50 @@ def validate(data: dict) -> None:
         print("       Fields present:", list(data.keys()))
         sys.exit(1)
 
-    # feature_image_type must be a known safe value
-    img_type = data.get("feature_image_type", "")
-    if img_type not in SAFE_IMAGE_TYPES:
-        print(f"WARNING: Unknown feature_image_type '{img_type}'. Setting to 'none'.")
-        data["feature_image_type"] = "none"
-        data["feature_image_url"] = ""
+    # ── Image safety checks ────────────────────────────────────────────────────
+    def _clear_image(reason: str) -> None:
+        print(f"WARNING: {reason}. Falling back to no image.")
+        data["feature_image_url"]        = ""
+        data["feature_image_alt"]        = ""
+        data["feature_image_caption"]    = ""
+        data["feature_image_credit"]     = ""
+        data["feature_image_source_url"] = ""
+        data["feature_image_type"]       = "none"
 
-    # If an image URL is provided, it must not come from a known restricted source
-    url = data.get("feature_image_url", "")
-    blocked_domains = ["gettyimages.com", "shutterstock.com", "ap.org",
-                       "apimages.com", "reuters.com/resizer", "alamy.com"]
+    img_type   = data.get("feature_image_type", "")
+    url        = data.get("feature_image_url", "").strip()
+    credit     = data.get("feature_image_credit", "").strip()
+    source_url = data.get("feature_image_source_url", "").strip()
+
+    # 1. Type must be a known safe value
+    if img_type not in SAFE_IMAGE_TYPES:
+        _clear_image(f"Unknown feature_image_type '{img_type}'")
+
+    # Re-read after possible clear
+    url        = data.get("feature_image_url", "").strip()
+    img_type   = data.get("feature_image_type", "none")
+    credit     = data.get("feature_image_credit", "").strip()
+    source_url = data.get("feature_image_source_url", "").strip()
+
     if url:
-        for domain in blocked_domains:
+        # 2. Blocked domain check
+        for domain in BLOCKED_IMAGE_DOMAINS:
             if domain in url:
-                print(f"WARNING: Image URL from blocked domain ({domain}). Clearing image.")
-                data["feature_image_url"] = ""
-                data["feature_image_type"] = "none"
+                _clear_image(f"Image URL from blocked domain '{domain}'")
                 break
+
+    url    = data.get("feature_image_url", "").strip()
+    credit = data.get("feature_image_credit", "").strip()
+    source_url = data.get("feature_image_source_url", "").strip()
+
+    if url:
+        # 3. Credit is required whenever a URL is provided
+        if not credit:
+            _clear_image("feature_image_url set but feature_image_credit is missing")
+
+        # 4. Source URL is required whenever a URL is provided
+        elif not source_url:
+            _clear_image("feature_image_url set but feature_image_source_url is missing")
 
     # market_snapshot must be a list with real data
     snapshot = data.get("market_snapshot", [])
