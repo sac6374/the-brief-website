@@ -452,11 +452,330 @@ body.dash-page .site-footer {
   border-bottom: none;
 }
 
-/* ── Responsive nav label ─────────────────────────────────────── */
+/* ── Status bar (replaces sample data banner) ─────────────────── */
+.dash-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.dash-status-loading {
+  font-family: var(--d-mono);
+  font-size: 9.5px;
+  letter-spacing: .12em;
+  color: var(--d-muted);
+}
+.dash-status-live {
+  font-family: var(--d-mono);
+  font-size: 9.5px;
+  letter-spacing: .12em;
+  color: var(--d-green);
+}
+.dash-status-err {
+  font-family: var(--d-mono);
+  font-size: 9.5px;
+  letter-spacing: .12em;
+  color: var(--d-red);
+}
+.dash-updated {
+  font-family: var(--d-mono);
+  font-size: 8.5px;
+  letter-spacing: .08em;
+  color: var(--d-muted-2);
+}
+
+/* ── Disclaimer bar (replaces data banner) ────────────────────── */
+.dash-disclaimer-bar {
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding: 8px 32px;
+  font-family: var(--d-mono);
+  font-size: 8.5px;
+  letter-spacing: .1em;
+  color: var(--d-muted-2);
+  text-align: center;
+}
+
+/* ── Skeleton loading rows ────────────────────────────────────── */
+.dash-skeleton-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  align-items: center;
+}
+.dash-skeleton-row:last-child { border-bottom: none; }
+.dash-skeleton {
+  height: 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  animation: dash-pulse 1.4s ease-in-out infinite;
+}
+.dash-skeleton-sm {
+  width: 60px;
+  height: 10px;
+}
+@keyframes dash-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.8; }
+}
+
+/* ── Unavailable card state ───────────────────────────────────── */
+.dash-unavail-card {
+  padding: 24px 18px;
+}
+.dash-unavail-card-label {
+  font-family: var(--d-mono);
+  font-size: 9px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--d-muted);
+  margin-bottom: 8px;
+}
+.dash-unavail-card-note {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--d-muted-2);
+}
+
+/* ── Error block ──────────────────────────────────────────────── */
+.dash-err-block {
+  padding: 20px 18px;
+  font-family: var(--d-mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  color: var(--d-muted-2);
+}
+
+/* ── VIX volatility panel ─────────────────────────────────────── */
+.dash-vix-wrap {
+  padding: 32px 24px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dash-vix-panel { text-align: center; }
+.dash-vix-number {
+  font-family: var(--d-mono);
+  font-size: 52px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -.02em;
+  margin-bottom: 10px;
+}
+.dash-vix-label {
+  font-family: var(--d-mono);
+  font-size: 10px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.dash-vix-desc {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: rgba(221,227,236,0.65);
+  max-width: 280px;
+  margin: 0 auto 16px;
+}
+.dash-vix-note {
+  font-family: var(--d-mono);
+  font-size: 8px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--d-muted-2);
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 14px;
+}
+
+/* ── Stock quote card ─────────────────────────────────────────── */
+.dash-search-loading {
+  padding: 24px 0;
+  font-family: var(--d-mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: var(--d-muted);
+  text-align: center;
+}
+.dash-search-empty {
+  padding: 24px 0;
+  font-family: var(--d-mono);
+  font-size: 10px;
+  letter-spacing: .06em;
+  color: var(--d-muted-2);
+  text-align: center;
+}
+.dash-quote-card {
+  border-top: 1px solid var(--d-border);
+  padding: 14px 0 4px;
+  margin-top: 2px;
+}
+.dash-quote-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dash-quote-id { display: flex; flex-direction: column; gap: 3px; }
+.dash-quote-sym {
+  font-family: var(--d-mono);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--d-text);
+  letter-spacing: .04em;
+}
+.dash-quote-name {
+  font-size: 11px;
+  color: var(--d-muted);
+  line-height: 1.4;
+}
+.dash-quote-exch {
+  font-family: var(--d-mono);
+  font-size: 8px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--d-muted-2);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  padding: 3px 7px;
+  align-self: flex-start;
+}
+.dash-quote-main {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.dash-quote-price {
+  font-family: var(--d-mono);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--d-text);
+  letter-spacing: -.01em;
+}
+.dash-quote-chg {
+  font-family: var(--d-mono);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 8px;
+  letter-spacing: .02em;
+}
+.dash-quote-chg.up { color: var(--d-green); background: var(--d-green-bg); }
+.dash-quote-chg.dn { color: var(--d-red);   background: var(--d-red-bg);   }
+.dash-quote-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 12px;
+}
+.dash-quote-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px;
+  background: var(--d-card);
+  gap: 8px;
+}
+.dash-quote-stat span:first-child {
+  font-family: var(--d-mono);
+  font-size: 8.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--d-muted);
+}
+.dash-quote-stat span:last-child {
+  font-family: var(--d-mono);
+  font-size: 11px;
+  color: var(--d-text);
+}
+.dash-quote-footer {
+  font-family: var(--d-mono);
+  font-size: 8px;
+  letter-spacing: .08em;
+  color: var(--d-muted-2);
+  text-align: center;
+  padding-top: 4px;
+}
+
+/* ── CTA section ──────────────────────────────────────────────── */
+.dash-cta-section {
+  background: #04090f;
+  padding: 52px 32px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  text-align: center;
+}
+.dash-cta-eyebrow {
+  font-family: var(--d-mono);
+  font-size: 9px;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  color: var(--d-gold);
+  margin-bottom: 14px;
+}
+.dash-cta-headline {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(20px, 2.8vw, 28px);
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -.01em;
+  margin-bottom: 12px;
+}
+.dash-cta-sub {
+  font-family: var(--d-mono);
+  font-size: 11px;
+  color: var(--d-muted);
+  letter-spacing: .05em;
+  line-height: 1.7;
+  margin-bottom: 28px;
+}
+.dash-cta-btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.dash-btn-primary {
+  display: inline-block;
+  font-family: var(--d-mono);
+  font-size: 10px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 14px 28px;
+  background: var(--d-gold);
+  color: #fff;
+  border: 1.5px solid var(--d-gold);
+  transition: background .18s;
+}
+.dash-btn-primary:hover { background: #8a6614; border-color: #8a6614; }
+.dash-btn-outline {
+  display: inline-block;
+  font-family: var(--d-mono);
+  font-size: 10px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 14px 28px;
+  background: transparent;
+  color: rgba(221,227,236,0.65);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  transition: border-color .18s;
+}
+.dash-btn-outline:hover { border-color: rgba(255,255,255,0.35); }
+
+/* ── Responsive ───────────────────────────────────────────────── */
 @media (max-width: 680px) {
-  .dash-grid { grid-template-columns: 1fr; }
-  .dash-bottom { grid-template-columns: 1fr; }
-  .dash-grid-3 { grid-template-columns: 1fr; }
-  .dash-hero { padding: 28px 20px 24px; }
-  .dash-data-banner { padding: 9px 20px; }
+  .dash-grid      { grid-template-columns: 1fr; }
+  .dash-bottom    { grid-template-columns: 1fr; }
+  .dash-grid-3    { grid-template-columns: 1fr; }
+  .dash-hero      { padding: 28px 20px 24px; }
+  .dash-disclaimer-bar { padding: 8px 20px; font-size: 8px; }
+  .dash-cta-section    { padding: 40px 20px; }
+  .dash-vix-number { font-size: 40px; }
 }

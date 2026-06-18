@@ -1,6 +1,9 @@
 # Debug artifacts — never commit
 claude_raw_response.txt
 
+# Cloudflare local dev secrets — never commit
+.dev.vars
+
 # Python
 __pycache__/
 *.py[cod]

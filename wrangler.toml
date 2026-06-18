@@ -1,0 +1,10 @@
+# Cloudflare Pages local development config
+# Run: wrangler pages dev . --port 8788
+# This file contains NO secrets.
+# Set TWELVE_DATA_API_KEY in Cloudflare dashboard or .dev.vars (gitignored).
+
+name = "the-brief-website"
+pages_build_output_dir = "."
+
+[vars]
+MARKET_DATA_PROVIDER = "twelvedata"
