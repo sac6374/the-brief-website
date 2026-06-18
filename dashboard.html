@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market Dashboard — Read Market Brief</title>
+<meta name="description" content="Sample market dashboard — indices, MAG 7, crypto, commodities, bonds, currencies, and sentiment gauge. Educational purposes only.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#04090f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Mono:wght@400;500&family=Source+Serif+4:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body class="dash-page">
+
+<nav class="site-nav">
+  <a href="index.html" class="nav-brand">The Brief</a>
+  <div class="nav-links">
+    <a href="dashboard.html" class="nav-hide-mobile active">Dashboard</a>
+    <a href="archive.html" class="nav-hide-mobile">Archive</a>
+    <a href="about.html" class="nav-hide-mobile">About</a>
+    <a href="subscribe.html" class="nav-cta">Subscribe Free</a>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<header class="dash-hero">
+  <div class="wrap-wide">
+    <div class="dash-hero-eyebrow">Read Market Brief · Market Dashboard</div>
+    <h1>A quick snapshot before you read the brief.</h1>
+    <p class="dash-hero-sub">Markets at a glance — indices, sectors, macro, and sentiment.</p>
+    <div class="dash-disclaimer">
+      ⚠ Sample dashboard data — prices are illustrative only. Not live. Not real-time.
+      For educational purposes only. Not investment advice.
+    </div>
+  </div>
+</header>
+
+<!-- ── Data banner ── -->
+<div class="dash-data-banner">
+  <span class="dash-data-tag">Sample Data</span>
+  Figures shown reflect sample values aligned with the latest issue (Jun 18, 2026). Live data via Cloudflare Worker coming soon.
+  <span class="dash-data-source">Last brief: June 18, 2026</span>
+</div>
+
+<!-- ── Market themes ── -->
+<section class="dash-section">
+  <div class="wrap-wide">
+    <div class="dash-section-label">Market Themes · From Latest Brief</div>
+    <div class="dash-themes">
+      <div class="dash-theme-card">
+        <div class="dash-theme-tag">Fed Policy</div>
+        <div class="dash-theme-text">Warsh delivers hawkish debut — half the FOMC now penciling in a 2026 rate hike. Markets repriced rate expectations sharply.</div>
+      </div>
+      <div class="dash-theme-card">
+        <div class="dash-theme-tag">Rates</div>
+        <div class="dash-theme-text">10Y Treasury yield rose 7 bps to 4.49%. The 2Y-10Y spread remains inverted, signaling continued market skepticism on the growth outlook.</div>
+      </div>
+      <div class="dash-theme-card">
+        <div class="dash-theme-tag">Equities</div>
+        <div class="dash-theme-text">S&P 500 recovered Thursday, up 1.15%, after Wednesday's selloff. Intel surged ~8% on a Trump-announced Apple domestic chip deal.</div>
+      </div>
+      <div class="dash-theme-card">
+        <div class="dash-theme-tag">Energy</div>
+        <div class="dash-theme-text">WTI crude slid to $75.83, down 1.25%, as the US-Iran peace memorandum took formal effect and supply concerns eased.</div>
+      </div>
+      <div class="dash-theme-card">
+        <div class="dash-theme-tag">Geopolitics</div>
+        <div class="dash-theme-text">US-Iran ceasefire MOU formally signed, pressuring oil. Markets watching whether the deal holds through the next OPEC+ meeting.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Main card grid ── -->
+<section class="dash-section" style="padding-top:0">
+  <div class="wrap-wide">
+
+    <!-- Row 1: Indices + MAG 7 -->
+    <div class="dash-grid">
+
+      <!-- Indices -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <span class="dash-card-title">Indices</span>
+          <span class="dash-badge dash-badge-brief">From Latest Brief</span>
+        </div>
+        <div class="dash-rows">
+          <div class="dash-row">
+            <div><div class="dash-row-name">S&amp;P 500</div></div>
+            <div class="dash-row-val">7,506</div>
+            <div class="dash-row-chg up">▲ +1.15%</div>
+          </div>
+          <div class="dash-row">
+            <div><div class="dash-row-name">Nasdaq</div></div>
+            <div class="dash-row-val">21,432</div>
+            <div class="dash-row-chg up">▲ +1.42%</div>
+          </div>
+          <div class="dash-row">
+            <div><div class="dash-row-name">Dow Jones</div></div>
+            <div class="dash-row-val">43,891</div>
+            <div class="dash-row-chg up">▲ +0.62%</div>
+          </div>
+          <div class="dash-row">
+            <div><div class="dash-row-name">Russell 2000</div></div>
+            <div class="dash-row-val">2,108</div>
+            <div class="dash-row-chg dn">▼ −0.31%</div>
+          </div>
+          <div class="dash-row">
+            <div>
+              <div class="dash-row-name">VIX</div>
+              <div class="dash-row-sub">Volatility Index</div>
+            </div>
+            <div class="dash-row-val">16.8</div>
+            <div class="dash-row-chg dn">▼ −4.2%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAG 7 -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <span class="dash-card-title">MAG 7</span>
+          <span class="dash-badge dash-badge-sample">Sample</span>
+        </div>
+        <div class="dash-rows">
+          <div class="dash-row">
+            <div><div class="dash-row-name">AAPL</div><div class="dash-row-sub">Apple</div></div>
+            <div class="dash-row-val">$198.40</div>
+            <div class="dash-row-chg up">▲ +2.1%</div>
+          </div>
+          <div class="dash-row">
+            <div><div class="dash-row-name">MSFT</div><div class="dash-row-sub">Microsoft</div></div>
+            <div class="dash-row-val">$432.60</div>
+            <div class="dash-row-chg up">▲ +0.8%</div>
+          </div>
+          <div class="dash-row">
+            <div><div class="dash-row-name">NVDA</div><div class="dash-row-sub">NVIDIA</div></div>
+            <div class="dash-row-val">$128.90</div>
+            <div class="dash-row-chg up">▲ +3.2%</div>
+          </div>
+          <div class="dash-row">
+            <div><div class="dash-row-name">AMZN</div><div class="dash-row-sub">Amazon</div></div>
+            <div class="dash-row-val">$196.30</div>
+            <div class="dash-row-chg up">▲ +1.5%</div>
+          </div>
+          <div class="dash-row">
+            <div><div class="dash-row-name">GOOGL</div><div class="dash-row-sub">Alphabet</div></div>
+            <div class="dash-row-val">$178.40</div>
+            <div class="dash-row-chg dn">▼ −0.4%</div>
+          </div>
+          <div class="dash-row">
+            <div><div class="dash-row-name">META</div><div class="dash-row-sub">Meta</div></div>
+            <div class="dash-row-val">$523.80</div>
+            <div class="dash-row-chg up">▲ +1.9%</div>
+          </div>
+          <div class="dash-row">
+            <div><div class="dash-row-name">TSLA</div><div class="dash-row-sub">Tesla</div></div>
+            <div class="dash-row-val">$248.60</div>
+            <div class="dash-row-chg dn">▼ −1.2%</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /dash-grid row 1 -->
+
+    <!-- Row 2: Bonds & Rates + Currencies -->
+    <div class="dash-grid" style="margin-top:12px">
+
+      <!-- Bonds & Rates -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <span class="dash-card-title">Bonds &amp; Rates</span>
+          <span class="dash-badge dash-badge-brief">From Latest Brief</span>
+        </div>
+        <div class="dash-rows">
+          <div class="dash-row">
+            <div>
+              <div class="dash-row-name">10Y Treasury</div>
+              <div class="dash-row-sub">US 10-Year Yield</div>
+            </div>
+            <div class="dash-row-val">4.49%</div>
+            <div class="dash-row-chg up">▲ +7 bps</div>
+          </div>
+          <div class="dash-row">
+            <div>
+              <div class="dash-row-name">2Y Treasury</div>
+              <div class="dash-row-sub">US 2-Year Yield</div>
+            </div>
+            <div class="dash-row-val">4.82%</div>
+            <div class="dash-row-chg up">▲ +4 bps</div>
+          </div>
+          <div class="dash-row dash-spread-row">
+            <div>
+              <div class="dash-row-name">10Y − 2Y Spread</div>
+              <div class="dash-row-sub">Yield curve</div>
+            </div>
+            <div class="dash-row-val">−33 bps</div>
+            <div class="dash-row-chg flat">Inverted</div>
+          </div>
+          <div class="dash-spread-note">Inverted yield curve = 2Y yield above 10Y. Historically precedes recessions.</div>
+          <div class="dash-row">
+            <div>
+              <div class="dash-row-name">Fed Funds Rate</div>
+              <div class="dash-row-sub">FOMC target range</div>
+            </div>
+            <div class="dash-row-val">5.25–5.5%</div>
+            <div class="dash-row-chg flat">Held</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Currencies -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <span class="dash-card-title">Currencies</span>
+          <span class="dash-badge dash-badge-sample">Sample</span>
+        </div>
+        <div class="dash-rows">
+          <div class="dash-row">
+            <div>
+              <div class="dash-row-name">DXY</div>
+              <div class="dash-row-sub">US Dollar Index</div>
+            </div>
+            <div class="dash-row-val">104.2</div>
+            <div class="dash-row-chg up">▲ +0.3%</div>
+          </div>
+          <div class="dash-row">
+            <div>
+              <div class="dash-row-name">EUR / USD</div>
+              <div class="dash-row-sub">Euro / Dollar</div>
+            </div>
+            <div class="dash-row-val">1.0812</div>
+            <div class="dash-row-chg dn">▼ −0.2%</div>
+          </div>
+          <div class="dash-row">
+            <div>
+              <div class="dash-row-name">USD / JPY</div>
+              <div class="dash-row-sub">Dollar / Yen</div>
+            </div>
+            <div class="dash-row-val">157.4</div>
+            <div class="dash-row-chg up">▲ +0.5%</div>
+          </div>
+          <div class="dash-row">
+            <div>
+              <div class="dash-row-name">GBP / USD</div>
+              <div class="dash-row-sub">Sterling / Dollar</div>
+            </div>
+            <div class="dash-row-val">1.2684</div>
+            <div class="dash-row-chg dn">▼ −0.1%</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /dash-grid row 2 -->
+
+    <!-- Row 3: Crypto + Commodities -->
+    <div class="dash-grid" style="margin-top:12px">
+
+      <!-- Crypto -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <span class="dash-card-title">Crypto</span>
+          <span class="dash-badge dash-badge-sample">Sample</span>
+        </div>
+        <div class="dash-rows">
+          <div class="dash-row">
+            <div>
+              <div class="dash-row-name">BTC</div>
+              <div class="dash-row-sub">Bitcoin</div>
+            </div>
+            <div class="dash-row-val">$98,420</div>
+            <div class="dash-row-chg up">▲ +2.8%</div>
+          </div>
+          <div class="dash-row">
+            <div>
+              <div class="dash-row-name">ETH</div>
+              <div class="dash-row-sub">Ethereum</div>
+            </div>
+            <div class="dash-row-val">$3,620</div>
+            <div class="dash-row-chg up">▲ +1.4%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Commodities -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <span class="dash-card-title">Commodities</span>
+          <span class="dash-badge dash-badge-brief">Partial — Latest Brief</span>
+        </div>
+        <div class="dash-rows">
+          <div class="dash-row">
+            <div><div class="dash-row-name">Gold</div><div class="dash-row-sub">$/oz</div></div>
+            <div class="dash-row-val">$2,342</div>
+            <div class="dash-row-chg dn">▼ −0.3%</div>
+          </div>
+          <div class="dash-row">
+            <div><div class="dash-row-name">Silver</div><div class="dash-row-sub">$/oz</div></div>
+            <div class="dash-row-val">$28.40</div>
+            <div class="dash-row-chg dn">▼ −0.8%</div>
+          </div>
+          <div class="dash-row">
+            <div><div class="dash-row-name">Copper</div><div class="dash-row-sub">$/lb</div></div>
+            <div class="dash-row-val">$4.58</div>
+            <div class="dash-row-chg up">▲ +1.1%</div>
+          </div>
+          <div class="dash-row">
+            <div><div class="dash-row-name">WTI Crude</div><div class="dash-row-sub">$/barrel</div></div>
+            <div class="dash-row-val">$75.83</div>
+            <div class="dash-row-chg dn">▼ −1.25%</div>
+          </div>
+          <div class="dash-row">
+            <div><div class="dash-row-name">Brent Crude</div><div class="dash-row-sub">$/barrel</div></div>
+            <div class="dash-row-val">$78.60</div>
+            <div class="dash-row-chg dn">▼ −1.1%</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /dash-grid row 3 -->
+
+    <!-- Row 4: Fear & Greed + Stock Search -->
+    <div class="dash-bottom">
+
+      <!-- Fear & Greed Gauge -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <span class="dash-card-title">Sentiment Gauge</span>
+          <span class="dash-badge dash-badge-sample">Sample — Not Live</span>
+        </div>
+        <div class="dash-gauge-wrap">
+          <svg id="gauge-svg" class="dash-gauge-svg" viewBox="0 50 220 110" width="220" height="110" aria-label="Sentiment gauge showing sample value of 58 (Greed)">
+            <g id="gauge-arcs"></g>
+            <!-- Track background -->
+            <!-- Needle -->
+            <line id="gauge-needle"
+              x1="110" y1="100"
+              x2="30"  y2="100"
+              stroke="#e8e4de" stroke-width="2.5"
+              stroke-linecap="round"/>
+            <!-- Hub -->
+            <circle cx="110" cy="100" r="5" fill="#e8e4de"/>
+            <circle cx="110" cy="100" r="2.5" fill="#070f18"/>
+          </svg>
+          <div class="dash-gauge-value">58</div>
+          <div class="dash-gauge-sentiment">Greed</div>
+          <div class="dash-gauge-zones">
+            <span class="dash-gauge-zone-label" style="color:#dc2626">Fear</span>
+            <span class="dash-gauge-zone-label" style="color:#eab308">Neutral</span>
+            <span class="dash-gauge-zone-label" style="color:#22c55e">Greed</span>
+          </div>
+          <div class="dash-gauge-note">Sample sentiment gauge — not live data</div>
+        </div>
+      </div>
+
+      <!-- Stock Search -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <span class="dash-card-title">Stock Search</span>
+          <span class="dash-badge dash-badge-sample">Sample Data Only</span>
+        </div>
+        <div class="dash-search-inner">
+          <div class="dash-search-note">
+            Sample dataset — ~20 tickers. Not live prices. Live search via Cloudflare Worker coming soon.
+          </div>
+          <div class="dash-search-input-wrap">
+            <input
+              type="text"
+              id="stock-search-input"
+              class="dash-search-input"
+              placeholder="Type a ticker: AAPL, MSFT, NVDA…"
+              maxlength="6"
+              autocomplete="off"
+              autocorrect="off"
+              spellcheck="false">
+            <button id="stock-search-btn" class="dash-search-btn">Search</button>
+          </div>
+          <div id="stock-search-results" class="dash-search-results"></div>
+        </div>
+      </div>
+
+    </div><!-- /dash-bottom -->
+
+  </div><!-- /wrap-wide -->
+</section>
+
+<!-- ── Read the brief CTA ── -->
+<section style="background:#04090f;padding:40px 32px;border-top:1px solid rgba(255,255,255,0.05)">
+  <div class="wrap-narrow" style="text-align:center">
+    <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:#a07820;margin-bottom:12px">Go deeper</div>
+    <div style="font-family:'Playfair Display',Georgia,serif;font-size:24px;font-weight:700;color:#fff;margin-bottom:12px;letter-spacing:-.01em">Now read the brief behind the numbers.</div>
+    <p style="font-family:'DM Mono',monospace;font-size:11px;color:#5d7080;letter-spacing:.05em;margin-bottom:24px">The dashboard shows what moved. The brief explains why — and what it means for your career.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="briefs/2026-06-18.html" style="display:inline-block;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;text-decoration:none;padding:14px 28px;background:#a07820;color:#fff;border:1.5px solid #a07820;transition:background .18s">Read Today's Brief</a>
+      <a href="subscribe.html" style="display:inline-block;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;text-decoration:none;padding:14px 28px;background:transparent;color:rgba(240,237,232,0.7);border:1.5px solid rgba(255,255,255,0.18);transition:border-color .18s">Subscribe Free</a>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  The Brief &nbsp;·&nbsp; Daily Market Intelligence<br>
+  <a href="about.html">About</a> &nbsp;·&nbsp; <a href="archive.html">Archive</a> &nbsp;·&nbsp; <a href="dashboard.html">Dashboard</a> &nbsp;·&nbsp; <a href="subscribe.html">Subscribe</a><br>
+  Not investment advice &nbsp;·&nbsp; For educational purposes only &nbsp;·&nbsp; Sample data — not live
+</footer>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

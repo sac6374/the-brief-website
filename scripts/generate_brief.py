@@ -531,6 +531,7 @@ def build_page(data: dict) -> str:
 <nav class="brief-nav">
   <a href="../index.html" class="brief-nav-brand">The Brief</a>
   <div class="brief-nav-links">
+    <a href="../dashboard.html">Dashboard</a>
     <a href="../archive.html">Archive</a>
     <a href="../subscribe.html" class="nav-cta">Subscribe Free</a>
   </div>
