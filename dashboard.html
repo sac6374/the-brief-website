@@ -9,16 +9,15 @@
 <link rel="alternate icon" href="/favicon.ico">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="theme-color" content="#111111">
+<meta name="theme-color" content="#0d1117">
 <link rel="canonical" href="https://readmarketbrief.com/dashboard.html">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="dashboard.css">
 </head>
 <body class="dash-page">
 
-<!-- ── Nav ── -->
 <nav class="site-nav">
   <a href="index.html" class="nav-brand">The Brief</a>
   <div class="nav-links">
@@ -29,7 +28,6 @@
   </div>
 </nav>
 
-<!-- ── Hero ── -->
 <header class="db-hero">
   <div class="db-hero-label">Read Market Brief · Market Dashboard</div>
   <h1>Markets at a glance.</h1>
@@ -44,12 +42,10 @@
   </div>
 </header>
 
-<!-- ── Disclaimer ── -->
 <div class="db-disclaimer">
   Market data may be delayed &nbsp;·&nbsp; For informational and educational purposes only &nbsp;·&nbsp; Not investment advice
 </div>
 
-<!-- ── Themes strip ── -->
 <div class="db-themes">
   <div class="db-themes-hd">
     <span class="db-themes-title">Market Themes</span>
@@ -80,108 +76,96 @@
   </div>
 </div>
 
-<!-- ── Dashboard grid ── -->
 <div class="db-wrap">
 
-  <!-- Row 1: Indices · MAG 7 -->
+  <!-- Indices · MAG 7 -->
   <div class="db-grid">
-
     <div class="dc">
       <div class="dc-head">
         <div class="dc-head-left">
-          <svg class="dc-head-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <svg class="dc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           <span class="dc-title">Indices</span>
         </div>
         <span class="dc-ts" id="ts-indices"></span>
       </div>
       <div class="dc-body" id="indices-rows"></div>
     </div>
-
     <div class="dc">
       <div class="dc-head">
         <div class="dc-head-left">
-          <svg class="dc-head-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <svg class="dc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           <span class="dc-title">MAG 7</span>
         </div>
         <span class="dc-ts" id="ts-mag7"></span>
       </div>
-      <div class="dc-body-grid" id="mag7-rows"></div>
+      <div class="dc-body" id="mag7-rows"></div>
     </div>
-
   </div>
 
-  <!-- Row 2: Crypto · Commodities -->
+  <!-- Crypto · Commodities -->
   <div class="db-grid db-gap">
-
     <div class="dc">
       <div class="dc-head">
         <div class="dc-head-left">
-          <svg class="dc-head-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a3 3 0 0 1 5 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+          <svg class="dc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a3 3 0 0 1 5 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
           <span class="dc-title">Crypto</span>
         </div>
         <span class="dc-ts" id="ts-crypto"></span>
       </div>
       <div class="dc-body" id="crypto-rows"></div>
     </div>
-
     <div class="dc">
       <div class="dc-head">
         <div class="dc-head-left">
-          <svg class="dc-head-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+          <svg class="dc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
           <span class="dc-title">Commodities</span>
         </div>
         <span class="dc-ts" id="ts-commodities"></span>
       </div>
       <div class="dc-body" id="commodities-rows"></div>
     </div>
-
   </div>
 
-  <!-- Row 3: Energy · Bonds -->
+  <!-- Energy · Bonds -->
   <div class="db-grid db-gap">
-
     <div class="dc">
       <div class="dc-head">
         <div class="dc-head-left">
-          <svg class="dc-head-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <svg class="dc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
           <span class="dc-title">Energy</span>
         </div>
         <span class="dc-ts" id="ts-energy"></span>
       </div>
       <div class="dc-body" id="energy-rows"></div>
     </div>
-
     <div class="dc">
       <div class="dc-head">
         <div class="dc-head-left">
-          <svg class="dc-head-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          <svg class="dc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
           <span class="dc-title">Bonds &amp; Rates</span>
         </div>
         <span class="dc-ts" id="ts-bonds"></span>
       </div>
       <div class="dc-body" id="bonds-rows"></div>
     </div>
-
   </div>
 
-  <!-- Row 4: Currencies · Sentiment -->
+  <!-- Currencies · Sentiment -->
   <div class="db-grid db-gap">
-
     <div class="dc">
       <div class="dc-head">
         <div class="dc-head-left">
-          <svg class="dc-head-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <svg class="dc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
           <span class="dc-title">Currencies</span>
         </div>
         <span class="dc-ts" id="ts-forex"></span>
       </div>
       <div class="dc-body" id="forex-rows"></div>
     </div>
-
     <div class="dc">
       <div class="dc-head">
         <div class="dc-head-left">
-          <svg class="dc-head-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <svg class="dc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
           <span class="dc-title">Market Sentiment</span>
         </div>
         <span class="dc-ts" id="ts-sentiment"></span>
@@ -190,26 +174,19 @@
         <div class="dc-err">Loading…</div>
       </div>
     </div>
-
   </div>
 
-  <!-- Stock Search — full width -->
+  <!-- Stock Search -->
   <div class="db-search-section">
     <div class="db-search-head">
       <div class="db-search-head-left">
-        <svg class="dc-head-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <span class="db-search-head-title">Stock Search</span>
+        <svg class="dc-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <span class="db-search-title">Stock Search</span>
       </div>
       <div class="db-search-bar">
-        <input
-          type="text"
-          id="search-input"
-          class="db-search-input"
+        <input type="text" id="search-input" class="db-search-input"
           placeholder="Ticker: AAPL, NVDA, TSLA…"
-          maxlength="12"
-          autocomplete="off"
-          autocorrect="off"
-          spellcheck="false">
+          maxlength="12" autocomplete="off" autocorrect="off" spellcheck="false">
         <button id="search-go" class="db-search-go">Go</button>
       </div>
     </div>
@@ -220,9 +197,8 @@
     </div>
   </div>
 
-</div><!-- /db-wrap -->
+</div>
 
-<!-- ── CTA ── -->
 <div class="db-cta">
   <div class="db-cta-label">Go deeper</div>
   <h2>Now read the brief behind the numbers.</h2>
