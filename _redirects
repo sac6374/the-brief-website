@@ -1,0 +1,7 @@
+# Explicit passthrough for static files that must not be caught by any fallback
+/sitemap.xml    /sitemap.xml    200
+/robots.txt     /robots.txt     200
+/favicon.svg    /favicon.svg    200
+/favicon.ico    /favicon.ico    200
+/apple-touch-icon.png   /apple-touch-icon.png   200
+/site.webmanifest       /site.webmanifest       200
