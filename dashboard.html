@@ -4,15 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Market Dashboard — Read Market Brief</title>
-<meta name="description" content="Latest available market data — indices, equities, currencies, crypto, commodities, and energy. Educational purposes only. Not investment advice.">
+<meta name="description" content="Latest available market data — indices, equities, currencies, crypto, commodities, and energy. For informational purposes only. Not investment advice.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="/favicon.ico">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="theme-color" content="#04090f">
+<meta name="theme-color" content="#0f1117">
 <link rel="canonical" href="https://readmarketbrief.com/dashboard.html">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="dashboard.css">
 </head>
@@ -30,226 +30,174 @@
 </nav>
 
 <!-- ── Hero ── -->
-<header class="dash-hero">
-  <div class="dash-hero-glow"></div>
-  <div class="dash-hero-eyebrow">Read Market Brief · Market Dashboard</div>
+<header class="db-hero">
+  <div class="db-hero-label">Read Market Brief · Market Dashboard</div>
   <h1>Markets at a glance.</h1>
-  <p class="dash-hero-sub">Latest available market data before you read the brief.</p>
-  <div class="dash-hero-btns">
-    <a href="briefs/2026-06-18.html" class="d-btn d-btn-gold">Read Today's Brief</a>
-    <a href="subscribe.html" class="d-btn d-btn-ghost">Subscribe Free</a>
+  <p class="db-hero-sub">Latest available market data before you read the brief.</p>
+  <div class="db-hero-actions">
+    <a href="briefs/2026-06-18.html" class="db-btn db-btn-primary">Read Today's Brief</a>
+    <a href="subscribe.html"         class="db-btn db-btn-outline">Subscribe Free</a>
   </div>
-  <div class="dash-hero-status">
-    <span id="dash-status" class="d-status-dot">Loading market data…</span>
-    <span id="dash-updated" class="d-updated"></span>
+  <div class="db-hero-status">
+    <span id="db-status" class="db-status">Connecting…</span>
+    <span id="db-updated" class="db-ts"></span>
   </div>
 </header>
 
 <!-- ── Disclaimer ── -->
-<div class="dash-disclaimer">
+<div class="db-disclaimer">
   Market data may be delayed &nbsp;·&nbsp; For informational and educational purposes only &nbsp;·&nbsp; Not investment advice
 </div>
 
-<!-- ── News / Themes strip ── -->
-<div class="dash-news-section">
-  <div class="dash-news-header">
-    <span class="dash-news-label">Market Themes</span>
-    <span class="dash-news-badge">From Today's Brief</span>
-    <span class="dash-news-source">Read Market Brief · Editorial</span>
+<!-- ── Themes strip ── -->
+<div class="db-themes">
+  <div class="db-themes-hd">
+    <span class="db-themes-title">Market Themes</span>
+    <span class="db-themes-badge">From Today's Brief</span>
+    <span class="db-themes-source">Read Market Brief · Editorial</span>
   </div>
-  <div class="dash-news-strip">
-    <div class="dash-news-card">
-      <div class="dash-news-card-tag">Fed Watch</div>
-      <div class="dash-news-card-text">Rate cut timeline stays data-dependent as core inflation holds above the 2% target.</div>
-      <div class="dash-news-card-meta">Monetary Policy · Today</div>
+  <div class="db-themes-row">
+    <div class="db-theme-card">
+      <div class="db-theme-tag">Fed Watch</div>
+      <div class="db-theme-text">Rate cut timeline stays data-dependent as core inflation holds above the 2% target.</div>
     </div>
-    <div class="dash-news-card">
-      <div class="dash-news-card-tag">AI &amp; Tech</div>
-      <div class="dash-news-card-text">MAG 7 earnings season sets the tone for broader market risk appetite.</div>
-      <div class="dash-news-card-meta">Equities · Today</div>
+    <div class="db-theme-card">
+      <div class="db-theme-tag">AI &amp; Tech</div>
+      <div class="db-theme-text">MAG 7 earnings season sets the tone for broader market risk appetite.</div>
     </div>
-    <div class="dash-news-card">
-      <div class="dash-news-card-tag">Dollar Strength</div>
-      <div class="dash-news-card-text">DXY elevated as global capital flows continue to favor US denominated assets.</div>
-      <div class="dash-news-card-meta">FX · Today</div>
+    <div class="db-theme-card">
+      <div class="db-theme-tag">Dollar Strength</div>
+      <div class="db-theme-text">DXY elevated as global capital flows continue to favor US dollar assets.</div>
     </div>
-    <div class="dash-news-card">
-      <div class="dash-news-card-tag">Gold Rally</div>
-      <div class="dash-news-card-text">Gold trades near multi-year highs as central banks diversify currency reserves.</div>
-      <div class="dash-news-card-meta">Commodities · Today</div>
+    <div class="db-theme-card">
+      <div class="db-theme-tag">Gold Rally</div>
+      <div class="db-theme-text">Gold near multi-year highs as central banks diversify currency reserves.</div>
     </div>
-    <div class="dash-news-card">
-      <div class="dash-news-card-tag">Geopolitics</div>
-      <div class="dash-news-card-text">Energy markets react to supply uncertainty — OPEC+ production decisions in focus.</div>
-      <div class="dash-news-card-meta">Energy · Today</div>
+    <div class="db-theme-card">
+      <div class="db-theme-tag">Energy</div>
+      <div class="db-theme-text">Crude oil markets react to OPEC+ production decisions and geopolitical risk.</div>
     </div>
   </div>
 </div>
 
 <!-- ── Dashboard grid ── -->
-<div class="dash-wrap">
+<div class="db-wrap">
 
   <!-- Row 1: Indices · MAG 7 · Crypto -->
-  <div class="dash-grid-3">
+  <div class="db-grid">
 
-    <div class="dcard">
-      <div class="dcard-head">
-        <div class="dcard-title-wrap">
-          <span class="dcard-icon">
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="1,10 5,6 8,9 13,3"/></svg>
-          </span>
-          <span class="dcard-title">Indices</span>
-        </div>
-        <span class="dcard-ts" id="ts-indices"></span>
+    <div class="dc">
+      <div class="dc-head">
+        <span class="dc-title">Indices</span>
+        <span class="dc-ts" id="ts-indices"></span>
       </div>
-      <div id="indices-rows"></div>
+      <div class="dc-body" id="indices-rows"></div>
     </div>
 
-    <div class="dcard">
-      <div class="dcard-head">
-        <div class="dcard-title-wrap">
-          <span class="dcard-icon">
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polygon points="7,1 9,5 13,5.5 10,8.5 10.5,13 7,11 3.5,13 4,8.5 1,5.5 5,5"/></svg>
-          </span>
-          <span class="dcard-title">MAG 7</span>
-        </div>
-        <span class="dcard-ts" id="ts-mag7"></span>
+    <div class="dc">
+      <div class="dc-head">
+        <span class="dc-title">MAG 7</span>
+        <span class="dc-ts" id="ts-mag7"></span>
       </div>
-      <div id="mag7-rows"></div>
+      <div class="dc-body" id="mag7-rows"></div>
     </div>
 
-    <div class="dcard">
-      <div class="dcard-head">
-        <div class="dcard-title-wrap">
-          <span class="dcard-icon">
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.5"/><line x1="7" y1="3" x2="7" y2="4.5"/><line x1="7" y1="9.5" x2="7" y2="11"/><path d="M5,5.5 Q5,4.5 7,4.5 Q9,4.5 9,6 Q9,7.5 7,7.5 Q9,7.5 9,9 Q9,10.5 7,10.5 Q5,10.5 5,9"/></svg>
-          </span>
-          <span class="dcard-title">Crypto</span>
-        </div>
-        <span class="dcard-ts" id="ts-crypto"></span>
+    <div class="dc">
+      <div class="dc-head">
+        <span class="dc-title">Crypto</span>
+        <span class="dc-ts" id="ts-crypto"></span>
       </div>
-      <div id="crypto-rows"><!-- BTC, ETH, XRP, SOL --></div>
+      <div class="dc-body" id="crypto-rows"></div>
     </div>
 
-  </div><!-- /row 1 -->
+  </div>
 
   <!-- Row 2: Commodities · Energy · Bonds -->
-  <div class="dash-grid-3 dash-row-gap">
+  <div class="db-grid db-gap">
 
-    <div class="dcard">
-      <div class="dcard-head">
-        <div class="dcard-title-wrap">
-          <span class="dcard-icon">
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="3"/><path d="M7,1.5 L7,4 M7,10 L7,12.5 M1.5,7 L4,7 M10,7 L12.5,7 M3.4,3.4 L5.1,5.1 M8.9,8.9 L10.6,10.6 M10.6,3.4 L8.9,5.1 M5.1,8.9 L3.4,10.6"/></svg>
-          </span>
-          <span class="dcard-title">Commodities</span>
-        </div>
-        <span class="dcard-ts" id="ts-commodities"></span>
+    <div class="dc">
+      <div class="dc-head">
+        <span class="dc-title">Commodities</span>
+        <span class="dc-ts" id="ts-commodities"></span>
       </div>
-      <div id="commodities-rows"></div>
+      <div class="dc-body" id="commodities-rows"></div>
     </div>
 
-    <div class="dcard">
-      <div class="dcard-head">
-        <div class="dcard-title-wrap">
-          <span class="dcard-icon">
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7,2 Q9,2 9,4 Q9,6 7,6 Q5,6 5,8 Q5,10 7,11 Q9,10 9,8"/><path d="M7,11 L7,12.5"/><path d="M7,2 L7,0.5"/></svg>
-          </span>
-          <span class="dcard-title">Energy</span>
-        </div>
-        <span class="dcard-ts" id="ts-energy"></span>
+    <div class="dc">
+      <div class="dc-head">
+        <span class="dc-title">Energy</span>
+        <span class="dc-ts" id="ts-energy"></span>
       </div>
-      <div id="energy-rows"></div>
+      <div class="dc-body" id="energy-rows"></div>
     </div>
 
-    <div class="dcard">
-      <div class="dcard-head">
-        <div class="dcard-title-wrap">
-          <span class="dcard-icon">
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="3.5" width="11" height="8" rx="1"/><path d="M4,3.5 L4,2.5 M10,3.5 L10,2.5 M1.5,7 L12.5,7"/></svg>
-          </span>
-          <span class="dcard-title">Bonds &amp; Rates</span>
-        </div>
-        <span class="dcard-ts" id="ts-bonds"></span>
+    <div class="dc">
+      <div class="dc-head">
+        <span class="dc-title">Bonds &amp; Rates</span>
+        <span class="dc-ts" id="ts-bonds"></span>
       </div>
-      <div id="bonds-rows"></div>
+      <div class="dc-body" id="bonds-rows"></div>
     </div>
 
-  </div><!-- /row 2 -->
+  </div>
 
-  <!-- Row 3: Currencies · Sentiment -->
-  <div class="dash-grid-2 dash-row-gap">
+  <!-- Row 3: Currencies · Sentiment (2-col) -->
+  <div class="db-grid-2 db-gap">
 
-    <div class="dcard">
-      <div class="dcard-head">
-        <div class="dcard-title-wrap">
-          <span class="dcard-icon">
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="5.5"/><path d="M2,7 Q5,4 7,7 Q9,10 12,7"/><path d="M7,1.5 L7,12.5"/></svg>
-          </span>
-          <span class="dcard-title">Currencies</span>
-        </div>
-        <span class="dcard-ts" id="ts-forex"></span>
+    <div class="dc">
+      <div class="dc-head">
+        <span class="dc-title">Currencies</span>
+        <span class="dc-ts" id="ts-forex"></span>
       </div>
-      <div id="forex-rows"></div>
+      <div class="dc-body" id="forex-rows"></div>
     </div>
 
-    <div class="dcard">
-      <div class="dcard-head">
-        <div class="dcard-title-wrap">
-          <span class="dcard-icon">
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2,11 Q2,4 7,4 Q12,4 12,11"/><line x1="7" y1="4" x2="7" y2="11"/></svg>
-          </span>
-          <span class="dcard-title">Market Sentiment</span>
-        </div>
-        <span class="dcard-ts" id="ts-sentiment"></span>
+    <div class="dc">
+      <div class="dc-head">
+        <span class="dc-title">Market Sentiment</span>
+        <span class="dc-ts" id="ts-sentiment"></span>
       </div>
-      <div id="sentiment-panel" class="dgauge-wrap">
-        <!-- filled by JS -->
-        <div class="derr">Loading sentiment…</div>
+      <div id="sentiment-panel" class="dc-gauge-wrap">
+        <div class="dc-err">Loading…</div>
       </div>
     </div>
 
-  </div><!-- /row 3 -->
+  </div>
 
   <!-- Stock Search — full width -->
-  <div class="dash-search-section">
-    <div class="dash-search-head">
-      <div class="dcard-title-wrap">
-        <span class="dcard-icon">
-          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6" cy="6" r="4"/><line x1="9.5" y1="9.5" x2="12.5" y2="12.5"/></svg>
-        </span>
-        <span class="dash-search-title">Stock Search</span>
-      </div>
-      <div class="dash-search-bar">
+  <div class="db-search-section">
+    <div class="db-search-head">
+      <span class="db-search-head-title">Stock Search</span>
+      <div class="db-search-bar">
         <input
           type="text"
           id="search-input"
-          class="dash-search-input"
+          class="db-search-input"
           placeholder="Ticker: AAPL, NVDA, TSLA…"
           maxlength="12"
           autocomplete="off"
           autocorrect="off"
           spellcheck="false">
-        <button id="search-go" class="dash-search-go">Go</button>
+        <button id="search-go" class="db-search-go">Go</button>
       </div>
     </div>
-    <div class="dash-search-body">
+    <div class="db-search-body">
       <div id="search-result">
-        <div class="dash-search-empty">Enter any ticker symbol for the latest available quote and chart.</div>
+        <div class="db-search-placeholder">Enter a ticker symbol for the latest quote and chart.</div>
       </div>
     </div>
   </div>
 
-</div><!-- /dash-wrap -->
+</div><!-- /db-wrap -->
 
 <!-- ── CTA ── -->
-<div class="dash-cta-bar">
-  <div class="dash-cta-eyebrow">Go deeper</div>
-  <div class="dash-cta-headline">Now read the brief behind the numbers.</div>
-  <p class="dash-cta-sub">The dashboard shows what moved. The brief explains why — and what it means for your career.</p>
-  <div class="dash-cta-btns">
-    <a href="briefs/2026-06-18.html" class="d-btn d-btn-gold">Read Today's Brief</a>
-    <a href="subscribe.html" class="d-btn d-btn-ghost">Subscribe Free</a>
+<div class="db-cta">
+  <div class="db-cta-label">Go deeper</div>
+  <h2>Now read the brief behind the numbers.</h2>
+  <p>The dashboard shows what moved. The brief explains why — and what it means for your career.</p>
+  <div class="db-cta-btns">
+    <a href="briefs/2026-06-18.html" class="db-btn db-btn-primary">Read Today's Brief</a>
+    <a href="subscribe.html"         class="db-btn db-btn-outline">Subscribe Free</a>
   </div>
 </div>
 
@@ -263,7 +211,6 @@
   Market data may be delayed &nbsp;·&nbsp; Not investment advice &nbsp;·&nbsp; For educational purposes only
 </footer>
 
-<!-- Chart.js — used only for the stock chart in the search section -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="dashboard.js"></script>
 </body>
