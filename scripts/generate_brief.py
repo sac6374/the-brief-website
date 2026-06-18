@@ -518,6 +518,11 @@ def build_page(data: dict) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{seo_title}</title>
 <meta name="description" content="{meta_desc}">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="../favicon.ico">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="manifest" href="../site.webmanifest">
+<meta name="theme-color" content="#0d1b2a">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Mono:wght@300;400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,300;1,8..60,400&display=swap" rel="stylesheet">
 <style>{BRIEF_CSS}</style>
 </head>

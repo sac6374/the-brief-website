@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="6" fill="#0d1b2a"/>
+  <!-- Left stem -->
+  <rect x="7" y="5" width="4" height="22" fill="#a07820"/>
+  <!-- Top cap -->
+  <rect x="11" y="5" width="10" height="4" fill="#a07820"/>
+  <!-- Top bump right wall -->
+  <rect x="19" y="9" width="4" height="5" fill="#a07820"/>
+  <!-- Middle bar -->
+  <rect x="11" y="14" width="10" height="3" fill="#a07820"/>
+  <!-- Bottom bump right wall (wider) -->
+  <rect x="19" y="17" width="5" height="6" fill="#a07820"/>
+  <!-- Bottom cap (wider) -->
+  <rect x="11" y="23" width="11" height="4" fill="#a07820"/>
+</svg>

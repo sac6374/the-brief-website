@@ -1,0 +1,13 @@
+{
+  "name": "Read Market Brief",
+  "short_name": "The Brief",
+  "description": "Daily market intelligence for finance students and early-career professionals.",
+  "icons": [
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#0d1b2a",
+  "theme_color": "#0d1b2a"
+}
