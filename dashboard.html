@@ -30,147 +30,172 @@
 
 <!-- ── Hero ── -->
 <header class="dash-hero">
-  <div class="wrap-wide">
-    <div class="dash-hero-eyebrow">Read Market Brief · Market Dashboard</div>
-    <h1>Markets at a glance.</h1>
-    <p class="dash-hero-sub">Latest available market data across indices, equities, currencies, commodities, and crypto.</p>
-    <div class="dash-status-bar">
-      <span id="dash-status-text" class="dash-status-loading">&#x25CB;&nbsp;Loading market data…</span>
-      <span id="dash-updated" class="dash-updated"></span>
-    </div>
+  <div class="dash-hero-glow"></div>
+  <div class="dash-hero-eyebrow">Read Market Brief · Market Dashboard</div>
+  <h1>Markets at a glance.</h1>
+  <p class="dash-hero-sub">Latest available data across indices, equities, currencies, commodities, and crypto.</p>
+  <div class="dash-hero-btns">
+    <a href="briefs/2026-06-18.html" class="dash-btn-primary">Read Today's Brief</a>
+    <a href="subscribe.html" class="dash-btn-ghost">Subscribe Free</a>
+  </div>
+  <div class="dash-status-strip">
+    <span id="dash-status-text" class="dash-status-dot">Loading market data…</span>
+    <span id="dash-updated" class="dash-updated"></span>
   </div>
 </header>
 
 <!-- ── Disclaimer ── -->
-<div class="dash-disclaimer-bar">
+<div class="dash-disclaimer">
   Market data may be delayed &nbsp;·&nbsp; For informational and educational purposes only &nbsp;·&nbsp; Not investment advice
 </div>
 
-<!-- ── Main grid ── -->
-<section class="dash-section">
-  <div class="wrap-wide">
-
-    <!-- Row 1: Indices + MAG 7 -->
-    <div class="dash-grid">
-
-      <div class="dash-card">
-        <div class="dash-card-head">
-          <span class="dash-card-title">Indices</span>
-        </div>
-        <div class="dash-rows" id="indices-rows"></div>
-      </div>
-
-      <div class="dash-card">
-        <div class="dash-card-head">
-          <span class="dash-card-title">MAG 7</span>
-        </div>
-        <div class="dash-rows" id="mag7-rows"></div>
-      </div>
-
+<!-- ── Market Themes Strip ── -->
+<div class="dash-themes-section">
+  <div class="dash-themes-header">
+    <span class="dash-themes-label">Today's Macro Themes</span>
+    <span class="dash-themes-source">Read Market Brief · Editorial</span>
+  </div>
+  <div class="dash-themes-strip">
+    <div class="dash-theme-chip">
+      <div class="dash-theme-chip-tag">Fed Watch</div>
+      <div class="dash-theme-chip-text">Rate cut timeline remains data-dependent as inflation stays above 2% target.</div>
     </div>
-
-    <!-- Row 2: Bonds & Rates + Currencies -->
-    <div class="dash-grid" style="margin-top:10px">
-
-      <div class="dash-card">
-        <div class="dash-card-head">
-          <span class="dash-card-title">Bonds &amp; Rates</span>
-        </div>
-        <div class="dash-rows">
-          <div class="dash-unavail-card">
-            <div class="dash-unavail-card-label">Treasury yield data unavailable</div>
-            <div class="dash-unavail-card-note">US 10Y and 2Y Treasury yields are not provided by this data source. Yield commentary is included in every issue of The Brief.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="dash-card">
-        <div class="dash-card-head">
-          <span class="dash-card-title">Currencies</span>
-        </div>
-        <div class="dash-rows" id="forex-rows"></div>
-      </div>
-
+    <div class="dash-theme-chip">
+      <div class="dash-theme-chip-tag">AI &amp; Tech</div>
+      <div class="dash-theme-chip-text">MAG 7 earnings season sets the tone for broader market sentiment.</div>
     </div>
-
-    <!-- Row 3: Crypto + Commodities -->
-    <div class="dash-grid" style="margin-top:10px">
-
-      <div class="dash-card">
-        <div class="dash-card-head">
-          <span class="dash-card-title">Crypto</span>
-        </div>
-        <div class="dash-rows" id="crypto-rows"></div>
-      </div>
-
-      <div class="dash-card">
-        <div class="dash-card-head">
-          <span class="dash-card-title">Commodities</span>
-        </div>
-        <div class="dash-rows" id="commodities-rows"></div>
-      </div>
-
+    <div class="dash-theme-chip">
+      <div class="dash-theme-chip-tag">Dollar Strength</div>
+      <div class="dash-theme-chip-text">DXY index elevated as global capital flows favor US assets.</div>
     </div>
-
-    <!-- Row 4: VIX Volatility + Stock Lookup -->
-    <div class="dash-bottom" style="margin-top:10px">
-
-      <div class="dash-card">
-        <div class="dash-card-head">
-          <span class="dash-card-title">VIX Volatility</span>
-        </div>
-        <div class="dash-vix-wrap">
-          <div id="vix-panel" class="dash-vix-panel">
-            <div class="dash-vix-number" style="color:var(--d-muted)">—</div>
-            <div class="dash-vix-label" style="color:var(--d-muted)">Loading…</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="dash-card">
-        <div class="dash-card-head">
-          <span class="dash-card-title">Stock Lookup</span>
-        </div>
-        <div class="dash-search-inner">
-          <div class="dash-search-input-wrap">
-            <input
-              type="text"
-              id="stock-search-input"
-              class="dash-search-input"
-              placeholder="Ticker: AAPL, MSFT, NVDA, TSLA…"
-              maxlength="10"
-              autocomplete="off"
-              autocorrect="off"
-              spellcheck="false">
-            <button id="stock-search-btn" class="dash-search-btn">Look up</button>
-          </div>
-          <div id="stock-result" class="dash-search-results">
-            <div class="dash-search-empty">Enter any ticker for the latest available quote.</div>
-          </div>
-        </div>
-      </div>
-
+    <div class="dash-theme-chip">
+      <div class="dash-theme-chip-tag">Commodities</div>
+      <div class="dash-theme-chip-text">Gold near all-time highs as central banks continue reserve diversification.</div>
     </div>
-
-  </div><!-- /wrap-wide -->
-</section>
-
-<!-- ── Read the brief CTA ── -->
-<section class="dash-cta-section">
-  <div class="wrap-narrow">
-    <div class="dash-cta-eyebrow">Go deeper</div>
-    <div class="dash-cta-headline">Now read the brief behind the numbers.</div>
-    <p class="dash-cta-sub">The dashboard shows what moved. The brief explains why — and what it means for your career.</p>
-    <div class="dash-cta-btns">
-      <a href="briefs/2026-06-18.html" class="dash-btn-primary">Read Today's Brief</a>
-      <a href="subscribe.html" class="dash-btn-outline">Subscribe Free</a>
+    <div class="dash-theme-chip">
+      <div class="dash-theme-chip-tag">Geopolitics</div>
+      <div class="dash-theme-chip-text">Energy markets reacting to Middle East supply uncertainty and OPEC+ dynamics.</div>
     </div>
   </div>
-</section>
+</div>
+
+<!-- ── Main grid ── -->
+<div class="dash-wrap">
+
+  <!-- Row 1: Indices + MAG 7 + Currencies -->
+  <div class="dash-grid-3">
+
+    <div class="dcard">
+      <div class="dcard-head">
+        <span class="dcard-title">US Indices</span>
+      </div>
+      <div class="dcard-body" id="indices-rows"></div>
+    </div>
+
+    <div class="dcard">
+      <div class="dcard-head">
+        <span class="dcard-title">MAG 7</span>
+      </div>
+      <div class="dcard-body" id="mag7-rows"></div>
+    </div>
+
+    <div class="dcard">
+      <div class="dcard-head">
+        <span class="dcard-title">Currencies</span>
+      </div>
+      <div class="dcard-body" id="forex-rows"></div>
+    </div>
+
+  </div>
+
+  <!-- Row 2: Crypto + Commodities + Bonds -->
+  <div class="dash-grid-3 dash-row-gap">
+
+    <div class="dcard">
+      <div class="dcard-head">
+        <span class="dcard-title">Crypto</span>
+      </div>
+      <div class="dcard-body" id="crypto-rows"></div>
+    </div>
+
+    <div class="dcard">
+      <div class="dcard-head">
+        <span class="dcard-title">Commodities</span>
+      </div>
+      <div class="dcard-body" id="commodities-rows"></div>
+    </div>
+
+    <div class="dcard">
+      <div class="dcard-head">
+        <span class="dcard-title">Bonds &amp; Rates</span>
+      </div>
+      <div class="dcard-body">
+        <div class="dunavail">
+          <div class="dunavail-label">Treasury yield data unavailable</div>
+          <div class="dunavail-note">US Treasury yields are not provided by this data source. Yield commentary is included in every issue of The Brief.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Row 3: VIX + Stock Lookup -->
+  <div class="dash-grid-bottom">
+
+    <div class="dcard">
+      <div class="dcard-head">
+        <span class="dcard-title">VIX Volatility Index</span>
+      </div>
+      <div id="vix-panel" class="dvix-wrap">
+        <div class="dskel-row"><div class="dskel" style="width:60px;height:38px;margin:auto;border-radius:6px;"></div></div>
+      </div>
+    </div>
+
+    <div class="dcard">
+      <div class="dcard-head">
+        <span class="dcard-title">Stock Lookup</span>
+      </div>
+      <div class="dsearch-wrap">
+        <div class="dsearch-row">
+          <input
+            type="text"
+            id="stock-search-input"
+            class="dsearch-input"
+            placeholder="Enter ticker: AAPL, MSFT, NVDA, TSLA…"
+            maxlength="10"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false">
+          <button id="stock-search-btn" class="dsearch-btn">Look up</button>
+        </div>
+        <div id="stock-result" class="dsearch-results">
+          <div class="dsearch-empty">Enter any ticker for the latest available quote.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /dash-wrap -->
+
+<!-- ── CTA ── -->
+<div class="dash-cta-bar">
+  <div class="dash-cta-eyebrow">Go deeper</div>
+  <div class="dash-cta-headline">Now read the brief behind the numbers.</div>
+  <p class="dash-cta-sub">The dashboard shows what moved. The brief explains why — and what it means for your career.</p>
+  <div class="dash-cta-btns">
+    <a href="briefs/2026-06-18.html" class="dash-btn-primary">Read Today's Brief</a>
+    <a href="subscribe.html" class="dash-btn-ghost">Subscribe Free</a>
+  </div>
+</div>
 
 <footer class="site-footer">
   The Brief &nbsp;·&nbsp; Daily Market Intelligence<br>
-  <a href="about.html">About</a> &nbsp;·&nbsp; <a href="archive.html">Archive</a> &nbsp;·&nbsp; <a href="dashboard.html">Dashboard</a> &nbsp;·&nbsp; <a href="subscribe.html">Subscribe</a><br>
+  <a href="about.html">About</a> &nbsp;·&nbsp;
+  <a href="archive.html">Archive</a> &nbsp;·&nbsp;
+  <a href="dashboard.html">Dashboard</a> &nbsp;·&nbsp;
+  <a href="subscribe.html">Subscribe</a> &nbsp;·&nbsp;
+  <a href="terms.html">Terms</a><br>
   Market data may be delayed &nbsp;·&nbsp; Not investment advice &nbsp;·&nbsp; For educational purposes only
 </footer>
 
