@@ -1,15 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="6" fill="#0d1b2a"/>
-  <!-- Left stem -->
-  <rect x="7" y="5" width="4" height="22" fill="#a07820"/>
-  <!-- Top cap -->
-  <rect x="11" y="5" width="10" height="4" fill="#a07820"/>
-  <!-- Top bump right wall -->
-  <rect x="19" y="9" width="4" height="5" fill="#a07820"/>
-  <!-- Middle bar -->
-  <rect x="11" y="14" width="10" height="3" fill="#a07820"/>
-  <!-- Bottom bump right wall (wider) -->
-  <rect x="19" y="17" width="5" height="6" fill="#a07820"/>
-  <!-- Bottom cap (wider) -->
-  <rect x="11" y="23" width="11" height="4" fill="#a07820"/>
+  <!-- Option 3: Serif italic editorial mark — no box, pure typography -->
+  <rect width="32" height="32" fill="#0d1b2a"/>
+  <!-- Large italic serif B — editorial publication style -->
+  <text x="16" y="26"
+    font-family="'Playfair Display', 'Times New Roman', Georgia, serif"
+    font-size="26"
+    font-weight="700"
+    font-style="italic"
+    fill="#a07820"
+    text-anchor="middle"
+    dominant-baseline="auto">B</text>
+  <!-- Hairline rule beneath — editorial footer -->
+  <rect x="9" y="28.5" width="14" height="0.75" fill="#a07820" opacity="0.45"/>
 </svg>
