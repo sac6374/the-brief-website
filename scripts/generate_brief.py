@@ -1,92 +1,115 @@
 #!/usr/bin/env python3
 """
-generate_brief.py — The Brief daily issue generator.
+generate_brief.py — The Brief market update generator.
 
-Calls the Anthropic API with web search enabled, generates a structured JSON brief,
-wraps it in a full HTML page, and updates index.html + archive.html.
+Supports multiple update types with Eastern Time scheduling.
+
+Usage:
+    python scripts/generate_brief.py --type morning
+    python scripts/generate_brief.py --type midday
+    python scripts/generate_brief.py --type close
+    python scripts/generate_brief.py --type afterhours
+    python scripts/generate_brief.py --type breaking
+    python scripts/generate_brief.py --type auto     # detects America/New_York time
+
+Auto-mode windows (ET):
+    08:00 → morning     (window 07:30–09:00)
+    12:00 → midday      (window 11:30–13:00)
+    16:15 → close       (window 15:45–17:15)
+    18:30 → afterhours  (window 18:00–19:30)
 
 Required env var: ANTHROPIC_API_KEY
-
-Exits with code 1 (saves claude_raw_response.txt) on any failure.
-Never writes files if generation or validation fails.
 """
 
+import argparse
 import json
 import os
 import re
 import sys
-from datetime import date
+from datetime import datetime, date
 from pathlib import Path
 
 try:
     import anthropic
 except ImportError:
-    print("ERROR: anthropic package not installed. Run: pip install anthropic")
+    print("ERROR: anthropic not installed. Run: pip install anthropic")
+    sys.exit(1)
+
+try:
+    import pytz
+except ImportError:
+    print("ERROR: pytz not installed. Run: pip install pytz")
     sys.exit(1)
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 ROOT               = Path(__file__).parent.parent
 BRIEFS_DIR         = ROOT / "briefs"
+BREAKING_DIR       = ROOT / "breaking"
 INDEX_HTML         = ROOT / "index.html"
 ARCHIVE_HTML       = ROOT / "archive.html"
+SITEMAP_XML        = ROOT / "sitemap.xml"
 SYSTEM_PROMPT_FILE = ROOT / "prompts" / "system_prompt.txt"
 RAW_RESPONSE_FILE  = ROOT / "claude_raw_response.txt"
 LINKEDIN_DIR       = ROOT / "linkedin"
 
-# ── Required JSON fields ───────────────────────────────────────────────────────
-REQUIRED_FIELDS = [
-    "date_iso",
-    "date_display",
-    "headline",
-    "alert_strip",
-    "seo_title",
-    "meta_description",
-    "issue_kicker",
-    "opening_summary",
-    "feature_image_url",      # empty string "" if no safe image available
-    "feature_image_alt",
-    "feature_image_caption",
-    "feature_image_credit",
-    "feature_image_source_url",
-    "feature_image_type",     # "wikimedia" | "press" | "unsplash" | "pexels" | "none"
-    "market_snapshot",
-    "archive_teaser",
-    "homepage_teaser",
-    "linkedin_post",
-    "share_text",
-    "article_html",
+# ── Timezone ───────────────────────────────────────────────────────────────────
+ET = pytz.timezone("America/New_York")
+
+# ── Update type config ─────────────────────────────────────────────────────────
+UPDATE_TYPES = ["morning", "midday", "close", "afterhours", "breaking", "auto"]
+
+TYPE_LABELS = {
+    "morning":    "Morning Brief",
+    "midday":     "Midday Update",
+    "close":      "Market Close",
+    "afterhours": "After Hours",
+    "breaking":   "Breaking",
+}
+
+TYPE_BADGE_CSS = {
+    "morning":    "badge-morning",
+    "midday":     "badge-midday",
+    "close":      "badge-close",
+    "afterhours": "badge-afterhours",
+    "breaking":   "badge-breaking",
+}
+
+# ── Existing full-brief required fields (close type) ──────────────────────────
+CLOSE_REQUIRED_FIELDS = [
+    "date_iso", "date_display", "headline", "alert_strip", "seo_title",
+    "meta_description", "issue_kicker", "opening_summary",
+    "feature_image_url", "feature_image_alt", "feature_image_caption",
+    "feature_image_credit", "feature_image_source_url", "feature_image_type",
+    "market_snapshot", "archive_teaser", "homepage_teaser",
+    "linkedin_post", "share_text", "article_html",
 ]
 
-# ── Safe image source types ────────────────────────────────────────────────────
+# Required fields for lighter updates
+UPDATE_REQUIRED_FIELDS = [
+    "publish", "date_iso", "date_display", "headline", "summary",
+    "market_snapshot", "key_points", "what_to_watch",
+    "archive_teaser", "homepage_teaser",
+]
+
+BREAKING_REQUIRED_FIELDS = [
+    "publish", "date_iso", "date_display", "headline", "slug",
+    "summary", "why_it_matters", "market_impact",
+]
+
+# ── Image safety ───────────────────────────────────────────────────────────────
 SAFE_IMAGE_TYPES = {"wikimedia", "press", "unsplash", "pexels", "none"}
 
-# ── Domains that must never supply images ──────────────────────────────────────
-# Copyrighted news/photo agencies and stock libraries that do not grant reuse rights.
 BLOCKED_IMAGE_DOMAINS = [
-    # Stock / rights-managed photo agencies
-    "gettyimages.com", "shutterstock.com", "alamy.com",
-    "istockphoto.com", "dreamstime.com", "123rf.com", "depositphotos.com",
-    # News wire / agency photo services
-    "apimages.com", "ap.org",
-    "reuters.com",          # also catches reuters.com/resizer
-    "afp.com", "afpforum.com",
-    # Financial & business news with proprietary photo desks
-    "bloomberg.com", "bloomberg.net",
-    "wsj.com", "dowjones.com",
-    "ft.com",
-    "cnbc.com",
-    "nytimes.com", "nyti.ms",
-    "nbcnews.com",
-    "bbc.co.uk", "bbc.com",
-    "marketwatch.com",
-    "businessinsider.com",
-    "seekingalpha.com",
-    "theatlantic.com",
-    "washingtonpost.com",
-    "economist.com",
+    "gettyimages.com", "shutterstock.com", "alamy.com", "istockphoto.com",
+    "dreamstime.com", "123rf.com", "depositphotos.com",
+    "apimages.com", "ap.org", "reuters.com", "afp.com", "afpforum.com",
+    "bloomberg.com", "bloomberg.net", "wsj.com", "dowjones.com", "ft.com",
+    "cnbc.com", "nytimes.com", "nyti.ms", "nbcnews.com", "bbc.co.uk", "bbc.com",
+    "marketwatch.com", "businessinsider.com", "seekingalpha.com",
+    "theatlantic.com", "washingtonpost.com", "economist.com",
 ]
 
-# ── Full inline CSS for brief pages ───────────────────────────────────────────
+# ── Inline CSS for full brief pages (close type) ──────────────────────────────
 BRIEF_CSS = """
   :root{--ink:#0d1b2a;--paper:#f7f4ef;--paper-2:#ede9df;--rule:#d4cfc4;--red:#b52020;--gold:#a07820;--gold-bg:#faf4e2;--green:#1a6840;--green-bg:#edf7f1;--muted:#7a7268;--muted-2:#a09a90}
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -201,7 +224,7 @@ BRIEF_CSS = """
   .say{background:var(--ink);border-left:none;padding:24px 26px 26px;margin-top:6px}
   .say-context{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:rgba(247,244,239,0.45);display:block;margin-bottom:10px}
   .say p{font-size:15px;line-height:1.82;color:rgba(247,244,239,0.88);font-style:italic;margin-bottom:0}
-  .say p::before{content:'“';font-family:'Playfair Display',Georgia,serif;font-size:36px;color:rgba(247,244,239,0.18);line-height:0;vertical-align:-14px;margin-right:4px}
+  .say p::before{content:'"';font-family:'Playfair Display',Georgia,serif;font-size:36px;color:rgba(247,244,239,0.18);line-height:0;vertical-align:-14px;margin-right:4px}
   .sources{margin-top:40px;padding-top:14px;border-top:1px solid var(--rule);font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);line-height:1.9}
   .sources strong{font-weight:500;text-transform:uppercase;letter-spacing:.1em;font-size:8.5px}
   .article-cta{margin-top:40px;background:var(--paper-2);border:1px solid var(--rule);border-top:2px solid var(--ink);padding:24px 26px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
@@ -211,9 +234,104 @@ BRIEF_CSS = """
   .btn-cta:hover{background:#1a2f45}
 """
 
+# CSS for lighter update pages (morning/midday/afterhours/breaking)
+UPDATE_CSS = """
+  :root{--ink:#0d1b2a;--paper:#f7f4ef;--paper-2:#ede9df;--rule:#d4cfc4;--red:#b52020;--gold:#a07820;--gold-bg:#faf4e2;--green:#1a6840;--green-bg:#edf7f1;--muted:#7a7268;--muted-2:#a09a90}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Source Serif 4',Georgia,serif;background:var(--paper);color:var(--ink);font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  .brief-nav{background:var(--ink);display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid rgba(255,255,255,0.07);position:sticky;top:0;z-index:100}
+  .brief-nav-brand{font-family:'Playfair Display',Georgia,serif;font-size:18px;font-weight:900;letter-spacing:-.015em;color:#f7f4ef;text-decoration:none;padding:14px 0}
+  .brief-nav-links{display:flex;align-items:center}
+  .brief-nav-links a{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:rgba(247,244,239,0.5);text-decoration:none;padding:10px 14px;transition:color .15s}
+  .brief-nav-links a:hover{color:#f7f4ef}
+  .brief-nav-links .nav-cta{color:#f7f4ef !important;border:1px solid rgba(247,244,239,0.28);padding:8px 16px;margin-left:6px}
+  .update-header{padding:22px 22px 18px;max-width:680px;margin:0 auto;border-bottom:2px solid var(--ink)}
+  .update-type-badge{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.22em;text-transform:uppercase;padding:4px 10px;margin-bottom:10px}
+  .badge-morning{background:#e8f4fd;color:#1a5276;border:1px solid #aed6f1}
+  .badge-midday{background:#fef9e7;color:#7d6608;border:1px solid #f9e79f}
+  .badge-close{background:var(--ink);color:var(--paper);border:1px solid var(--ink)}
+  .badge-afterhours{background:#f4ecf7;color:#6c3483;border:1px solid #d2b4de}
+  .badge-breaking{background:#fdedec;color:var(--red);border:1px solid #f1948a;animation:badge-pulse 2s ease-in-out infinite}
+  @keyframes badge-pulse{0%,100%{opacity:1}50%{opacity:.7}}
+  .update-time{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted-2);margin-bottom:8px}
+  .update-headline{font-family:'Playfair Display',Georgia,serif;font-size:clamp(22px,4vw,30px);font-weight:900;line-height:1.12;letter-spacing:-.018em;color:var(--ink);margin-bottom:12px}
+  .update-summary{font-size:15px;line-height:1.80;color:#2a2a22;border-left:3px solid var(--ink);padding-left:14px}
+  .wrap{max-width:680px;margin:0 auto;padding:0 22px 60px}
+  .market-snapshot{border:1px solid var(--rule);border-top:2px solid var(--ink);background:var(--paper-2);margin:20px 0 8px}
+  .market-snapshot-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px 0}
+  .market-snapshot-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+  .market-snapshot-time{font-family:'DM Mono',monospace;font-size:8px;color:var(--muted-2)}
+  .market-snapshot-grid{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rule);margin-top:8px}
+  @media(max-width:420px){.market-snapshot-grid{grid-template-columns:repeat(2,1fr)}}
+  .snapshot-cell{padding:10px 12px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+  .snapshot-cell:nth-child(3n){border-right:none}
+  .snapshot-cell:nth-last-child(-n+3){border-bottom:none}
+  .snapshot-label{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2);margin-bottom:3px}
+  .snapshot-value{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:var(--ink);margin-bottom:2px;line-height:1}
+  .snapshot-change{font-family:'DM Mono',monospace;font-size:10px;font-weight:500}
+  .snapshot-change.up{color:var(--green)}.snapshot-change.down{color:var(--red)}.snapshot-change.flat{color:var(--muted)}
+  .section-block{margin-top:28px;padding-top:18px;border-top:1px solid var(--rule)}
+  .section-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  .key-points{list-style:none;padding:0;margin:0}
+  .key-points li{font-size:15px;line-height:1.72;padding:10px 0 10px 20px;border-bottom:1px solid var(--rule);position:relative}
+  .key-points li::before{content:'→';position:absolute;left:0;color:var(--red);font-family:'DM Mono',monospace;font-size:11px;top:12px}
+  .key-points li:last-child{border-bottom:none}
+  .watch-box{background:var(--gold-bg);border:1px solid rgba(160,120,32,0.3);border-left:3px solid var(--gold);padding:14px 16px;margin-top:4px}
+  .watch-label{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:7px}
+  .watch-box p{font-size:13.5px;line-height:1.68;margin-bottom:8px;color:#5a3f00}
+  .watch-box p:last-child{margin-bottom:0}
+  .breaking-impact{background:var(--ink);color:var(--paper);padding:18px 20px;margin-top:20px}
+  .breaking-impact-label{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:rgba(247,244,239,0.45);margin-bottom:10px}
+  .breaking-impact p{font-size:14px;line-height:1.72;margin-bottom:8px;color:rgba(247,244,239,0.88)}
+  .breaking-impact p:last-child{margin-bottom:0}
+  .disclaimer{margin-top:28px;padding-top:14px;border-top:1px solid var(--rule);font-family:'DM Mono',monospace;font-size:8.5px;color:var(--muted-2);line-height:1.8}
+  .update-cta{margin-top:32px;display:flex;gap:10px;flex-wrap:wrap}
+  .btn-dark{display:inline-block;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;text-decoration:none;padding:11px 22px;background:var(--ink);color:var(--paper);border:1.5px solid var(--ink);white-space:nowrap}
+  .btn-outline{display:inline-block;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;text-decoration:none;padding:11px 22px;border:1.5px solid var(--rule);color:var(--muted);white-space:nowrap}
+  p{margin-bottom:12px}p:last-child{margin-bottom:0}
+  a{color:var(--red)}
+"""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Timezone helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def now_et() -> datetime:
+    return datetime.now(ET)
+
+
+def determine_update_type() -> str | None:
+    """
+    Check the current America/New_York time and return the appropriate
+    update type, or None if no update is scheduled right now.
+
+    Windows (ET):
+        morning:    07:30 – 09:00
+        midday:     11:30 – 13:00
+        close:      15:45 – 17:15
+        afterhours: 18:00 – 19:30
+    """
+    et = now_et()
+    h, m = et.hour, et.minute
+    total = h * 60 + m  # minutes since midnight ET
+
+    if 7 * 60 + 30 <= total < 9 * 60:
+        return "morning"
+    if 11 * 60 + 30 <= total < 13 * 60:
+        return "midday"
+    if 15 * 60 + 45 <= total < 17 * 60 + 15:
+        return "close"
+    if 18 * 60 <= total < 19 * 60 + 30:
+        return "afterhours"
+    return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HTML helpers (shared with existing code)
+# ─────────────────────────────────────────────────────────────────────────────
 
 def render_feature_image(data: dict) -> str:
-    """Return HTML for the editorial feature image, or a minimal fallback rule."""
     url        = data.get("feature_image_url", "").strip()
     alt        = data.get("feature_image_alt", "")
     caption    = data.get("feature_image_caption", "").strip()
@@ -222,7 +340,6 @@ def render_feature_image(data: dict) -> str:
     img_type   = data.get("feature_image_type", "none")
 
     if not url or img_type == "none":
-        # Minimal 4px ink rule — not the main visual, just a clean separator
         return '<div class="feature-fallback"></div>\n'
 
     credit_html = ""
@@ -250,8 +367,7 @@ def render_feature_image(data: dict) -> str:
     )
 
 
-def render_market_snapshot(snapshot: list) -> str:
-    """Render a structured market_snapshot list into HTML."""
+def render_market_snapshot(snapshot: list, time_label: str = "At Close") -> str:
     cells = ""
     for item in snapshot:
         direction = item.get("direction", "flat")
@@ -270,41 +386,33 @@ def render_market_snapshot(snapshot: list) -> str:
         '<div class="market-snapshot">\n'
         '  <div class="market-snapshot-header">'
         '<span class="market-snapshot-label">Market Snapshot</span>'
-        '<span class="market-snapshot-time">At Close</span>'
+        f'<span class="market-snapshot-time">{time_label}</span>'
         '</div>\n'
         f'  <div class="market-snapshot-grid">\n{cells}  </div>\n'
         '</div>\n'
     )
 
 
-def call_api(system_prompt: str) -> str:
+# ─────────────────────────────────────────────────────────────────────────────
+# API call
+# ─────────────────────────────────────────────────────────────────────────────
+
+def call_api(system_prompt: str, user_message: str, max_tokens: int = 8000) -> str:
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         print("ERROR: ANTHROPIC_API_KEY environment variable is not set.")
         sys.exit(1)
 
     client = anthropic.Anthropic(api_key=api_key)
-    today = date.today().strftime("%A, %B %-d, %Y")
 
-    user_message = (
-        f"Today is {today}. "
-        "Use your web_search tool first to retrieve today's real market data and news. "
-        "Search for: S&P 500 close, Nasdaq close, Dow close, VIX, 10-year Treasury yield, "
-        "WTI crude, Brent crude, top movers, major earnings, Fed news, and the 2-3 biggest "
-        "market stories today. Also search for a suitable editorial image from Wikimedia Commons, "
-        "official press/government sources, Unsplash, or Pexels that matches today's main story. "
-        "Then produce a complete issue of The Brief. "
-        "Return ONLY the JSON object. No markdown fences. No text before or after the JSON."
-    )
-
-    print(f"Calling Anthropic API (claude-sonnet-4-6) for {today}...")
+    print(f"Calling Anthropic API (claude-sonnet-4-6)...")
 
     try:
         response = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=16000,
+            max_tokens=max_tokens,
             system=system_prompt,
-            tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 15}],
+            tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 12}],
             messages=[{"role": "user", "content": user_message}],
         )
     except anthropic.APIConnectionError as e:
@@ -324,30 +432,24 @@ def call_api(system_prompt: str) -> str:
     text_content = "\n".join(text_parts).strip()
 
     if not text_content:
-        print("ERROR: API returned no text content.")
-        print(f"Stop reason: {response.stop_reason}")
+        print(f"ERROR: API returned no text content. Stop reason: {response.stop_reason}")
         sys.exit(1)
 
     print(f"Received {len(text_content)} chars from API.")
     return text_content
 
 
-def save_raw_response(raw: str) -> None:
+def save_raw(raw: str) -> None:
     RAW_RESPONSE_FILE.write_text(raw, encoding="utf-8")
-    print(f"Raw Claude response saved to: {RAW_RESPONSE_FILE}")
+    print(f"Raw response saved to: {RAW_RESPONSE_FILE}")
 
 
 def extract_json(raw: str) -> dict:
-    """Robustly extract the first valid JSON object from a Claude response."""
-    original = raw
-
-    # Strategy 1: whole string is valid JSON
     try:
         return json.loads(raw.strip())
     except json.JSONDecodeError:
         pass
 
-    # Strategy 2: strip a single markdown code fence
     stripped = re.sub(r"^```(?:json)?\s*\n?", "", raw.strip())
     stripped = re.sub(r"\n?```\s*$", "", stripped)
     try:
@@ -355,7 +457,6 @@ def extract_json(raw: str) -> dict:
     except json.JSONDecodeError:
         pass
 
-    # Strategy 3: find first { and walk to matching }
     match = re.search(r"\{", raw)
     if match:
         start = match.start()
@@ -376,24 +477,65 @@ def extract_json(raw: str) -> dict:
                     depth -= 1
                     if depth == 0:
                         try:
-                            return json.loads(raw[start : i + 1])
+                            return json.loads(raw[start:i + 1])
                         except json.JSONDecodeError:
                             break
 
-    save_raw_response(original)
+    save_raw(raw)
     print("ERROR: Could not parse JSON from Claude response.")
-    print("       Raw response saved to claude_raw_response.txt")
-    print("       First 500 chars:", original[:500])
+    print("       First 500 chars:", raw[:500])
     sys.exit(1)
 
 
-def validate(data: dict) -> None:
+# ─────────────────────────────────────────────────────────────────────────────
+# Image safety (existing logic, unchanged)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _clear_image(data: dict, reason: str) -> None:
+    print(f"WARNING: {reason}. Falling back to no image.")
+    data["feature_image_url"] = ""
+    data["feature_image_alt"] = ""
+    data["feature_image_caption"] = ""
+    data["feature_image_credit"] = ""
+    data["feature_image_source_url"] = ""
+    data["feature_image_type"] = "none"
+
+
+def validate_image(data: dict) -> None:
+    img_type = data.get("feature_image_type", "")
+    url = data.get("feature_image_url", "").strip()
+
+    if img_type not in SAFE_IMAGE_TYPES:
+        _clear_image(data, f"Unknown feature_image_type '{img_type}'")
+        return
+
+    if not url:
+        return
+
+    for domain in BLOCKED_IMAGE_DOMAINS:
+        if domain in url:
+            _clear_image(data, f"Image URL from blocked domain '{domain}'")
+            return
+
+    credit = data.get("feature_image_credit", "").strip()
+    source_url = data.get("feature_image_source_url", "").strip()
+
+    if not credit:
+        _clear_image(data, "feature_image_url set but feature_image_credit is missing")
+    elif not source_url:
+        _clear_image(data, "feature_image_url set but feature_image_source_url is missing")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CLOSE (full daily brief) — identical to existing behavior
+# ─────────────────────────────────────────────────────────────────────────────
+
+def validate_close(data: dict) -> None:
     if "error" in data:
         print(f"ERROR: Claude reported a failure: {data['error']}")
         sys.exit(1)
 
-    # All image fields are optional when no safe image is available
-    IMAGE_OPTIONAL_FIELDS = {
+    IMAGE_OPTIONAL = {
         "feature_image_url", "feature_image_alt", "feature_image_caption",
         "feature_image_credit", "feature_image_source_url",
     }
@@ -402,114 +544,63 @@ def validate(data: dict) -> None:
         val = data.get(f)
         if val is None:
             return True
-        if f in IMAGE_OPTIONAL_FIELDS:
-            return False   # empty string is fine — means no image
+        if f in IMAGE_OPTIONAL:
+            return False
         if isinstance(val, str) and not val.strip():
             return True
         return False
 
-    missing = [f for f in REQUIRED_FIELDS if field_missing(f)]
+    missing = [f for f in CLOSE_REQUIRED_FIELDS if field_missing(f)]
     if missing:
-        print(f"ERROR: Response is missing required fields: {missing}")
-        print("       Fields present:", list(data.keys()))
+        print(f"ERROR: Response missing required fields: {missing}")
         sys.exit(1)
 
-    # ── Image safety checks ────────────────────────────────────────────────────
-    def _clear_image(reason: str) -> None:
-        print(f"WARNING: {reason}. Falling back to no image.")
-        data["feature_image_url"]        = ""
-        data["feature_image_alt"]        = ""
-        data["feature_image_caption"]    = ""
-        data["feature_image_credit"]     = ""
-        data["feature_image_source_url"] = ""
-        data["feature_image_type"]       = "none"
+    validate_image(data)
 
-    img_type   = data.get("feature_image_type", "")
-    url        = data.get("feature_image_url", "").strip()
-    credit     = data.get("feature_image_credit", "").strip()
-    source_url = data.get("feature_image_source_url", "").strip()
-
-    # 1. Type must be a known safe value
-    if img_type not in SAFE_IMAGE_TYPES:
-        _clear_image(f"Unknown feature_image_type '{img_type}'")
-
-    # Re-read after possible clear
-    url        = data.get("feature_image_url", "").strip()
-    img_type   = data.get("feature_image_type", "none")
-    credit     = data.get("feature_image_credit", "").strip()
-    source_url = data.get("feature_image_source_url", "").strip()
-
-    if url:
-        # 2. Blocked domain check
-        for domain in BLOCKED_IMAGE_DOMAINS:
-            if domain in url:
-                _clear_image(f"Image URL from blocked domain '{domain}'")
-                break
-
-    url    = data.get("feature_image_url", "").strip()
-    credit = data.get("feature_image_credit", "").strip()
-    source_url = data.get("feature_image_source_url", "").strip()
-
-    if url:
-        # 3. Credit is required whenever a URL is provided
-        if not credit:
-            _clear_image("feature_image_url set but feature_image_credit is missing")
-
-        # 4. Source URL is required whenever a URL is provided
-        elif not source_url:
-            _clear_image("feature_image_url set but feature_image_source_url is missing")
-
-    # market_snapshot must be a list with real data
     snapshot = data.get("market_snapshot", [])
     if not isinstance(snapshot, list) or len(snapshot) < 4:
-        print(f"ERROR: market_snapshot must be a list of at least 4 items "
-              f"(got {type(snapshot).__name__}, len={len(snapshot) if isinstance(snapshot, list) else 'n/a'})")
+        print(f"ERROR: market_snapshot must have at least 4 items (got {len(snapshot) if isinstance(snapshot, list) else 'n/a'})")
         sys.exit(1)
+
     placeholders = {"X,XXX", "XX,XXX", "X.XX", "$XX.XX", "X.X%", ""}
     for item in snapshot:
         if item.get("value", "") in placeholders:
-            print(f"ERROR: Placeholder value in market_snapshot for "
-                  f"'{item.get('label')}': '{item.get('value')}'")
+            print(f"ERROR: Placeholder in market_snapshot for '{item.get('label')}': '{item.get('value')}'")
             sys.exit(1)
 
-    # article_html must have real content
-    article_html = data.get("article_html", "")
-    if len(article_html) < 500:
-        print(f"ERROR: article_html is suspiciously short ({len(article_html)} chars).")
+    if len(data.get("article_html", "")) < 500:
+        print(f"ERROR: article_html too short ({len(data.get('article_html',''))} chars).")
         sys.exit(1)
 
-    # Normalize optional tags field
     tags = data.get("tags", [])
     if not isinstance(tags, list) or not tags:
         data["tags"] = ["Rates", "Equities", "Wealth Management"]
     else:
-        cleaned = [str(t).strip() for t in tags[:3] if str(t).strip()]
-        data["tags"] = cleaned if cleaned else ["Rates", "Equities", "Wealth Management"]
+        data["tags"] = [str(t).strip() for t in tags[:3] if str(t).strip()] or ["Rates", "Equities", "Wealth Management"]
 
-    # date override if wrong
     today_iso = date.today().isoformat()
     if data.get("date_iso") != today_iso:
-        print(f"WARNING: date_iso '{data.get('date_iso')}' overridden to '{today_iso}'.")
+        print(f"WARNING: date_iso overridden to {today_iso}")
         data["date_iso"] = today_iso
 
 
-def build_page(data: dict) -> str:
-    date_iso    = data["date_iso"]
-    seo_title   = data["seo_title"]
-    meta_desc   = data["meta_description"]
-    alert_strip = data["alert_strip"]
-    kicker      = data["issue_kicker"]
-    headline    = data["headline"]
-    opening     = data["opening_summary"]
+def build_close_page(data: dict) -> str:
+    date_iso     = data["date_iso"]
+    seo_title    = data["seo_title"]
+    meta_desc    = data["meta_description"]
+    alert_strip  = data["alert_strip"]
+    kicker       = data["issue_kicker"]
+    headline     = data["headline"]
+    opening      = data["opening_summary"]
     article_html = data["article_html"]
-    snapshot    = data["market_snapshot"]
+    snapshot     = data["market_snapshot"]
 
-    site_url = f"https://readmarketbrief.com/briefs/{date_iso}.html"
+    site_url = f"https://readmarketbrief.com/briefs/{date_iso}-close.html"
     share_raw = data["share_text"].replace("{{URL}}", site_url)
     share_encoded = re.sub(r"\s+", "+", share_raw.strip())
 
     feature_html     = render_feature_image(data)
-    market_snap_html = render_market_snapshot(snapshot)
+    market_snap_html = render_market_snapshot(snapshot, "At Close")
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -518,7 +609,7 @@ def build_page(data: dict) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{seo_title}</title>
 <meta name="description" content="{meta_desc}">
-<link rel="canonical" href="https://readmarketbrief.com/briefs/{date_iso}.html">
+<link rel="canonical" href="{site_url}">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="../favicon.ico">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
@@ -528,7 +619,150 @@ def build_page(data: dict) -> str:
 <style>{BRIEF_CSS}</style>
 </head>
 <body>
+<nav class="brief-nav">
+  <a href="../index.html" class="brief-nav-brand">The Brief</a>
+  <div class="brief-nav-links">
+    <a href="../dashboard.html">Dashboard</a>
+    <a href="../archive.html">Archive</a>
+    <a href="../subscribe.html" class="nav-cta">Subscribe Free</a>
+  </div>
+</nav>
+<div class="masthead">
+  <div class="masthead-eyebrow">Daily Market Intelligence</div>
+  <div class="masthead-title">The Brief</div>
+  <div class="masthead-rule"><span class="masthead-tagline">Finance students &amp; early-career professionals</span></div>
+</div>
+<div class="alert-strip">
+  <div class="alert-pip"></div>
+  {alert_strip}
+</div>
+<div class="wrap">
+  <div class="issue-kicker">{kicker}</div>
+  <h1 class="issue-headline">{headline}</h1>
+  <p class="opening-summary">{opening}</p>
+{feature_html}
+{market_snap_html}
+{article_html}
+  <div class="article-cta">
+    <div>
+      <div class="article-cta-text">Enjoyed this issue?</div>
+      <div class="article-cta-headline">Get the next Brief free — every weekday morning.</div>
+    </div>
+    <a href="../subscribe.html" class="btn-cta">Subscribe Free</a>
+  </div>
+  <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
+    <a href="../archive.html" style="flex:1;min-width:140px;display:block;border:1.5px solid var(--ink);color:var(--ink);text-align:center;padding:13px 18px;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;text-decoration:none">Browse All Issues</a>
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url={site_url}" target="_blank" rel="noopener" style="flex:1;min-width:140px;display:block;border:1.5px solid var(--rule);color:var(--muted);text-align:center;padding:13px 18px;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;text-decoration:none">Share on LinkedIn</a>
+  </div>
+</div>
+</body>
+</html>"""
 
+
+def generate_close(today_iso: str, date_display: str) -> dict:
+    if not SYSTEM_PROMPT_FILE.exists():
+        print(f"ERROR: System prompt not found at {SYSTEM_PROMPT_FILE}")
+        sys.exit(1)
+
+    system_prompt = SYSTEM_PROMPT_FILE.read_text(encoding="utf-8")
+    today_fmt = datetime.now(ET).strftime("%A, %B %-d, %Y")
+
+    user_message = (
+        f"Today is {today_fmt}. "
+        "Use your web_search tool first to retrieve today's real market data and news. "
+        "Search for: S&P 500 close, Nasdaq close, Dow close, VIX, 10-year Treasury yield, "
+        "WTI crude, top movers, major earnings, Fed news, and the 2-3 biggest market stories today. "
+        "Also search for a suitable editorial image. "
+        "Then produce a complete close-of-day issue of The Brief. "
+        "Return ONLY the JSON object. No markdown fences. No text before or after."
+    )
+
+    raw  = call_api(system_prompt, user_message, max_tokens=16000)
+    data = extract_json(raw)
+    validate_close(data)
+    data["date_iso"]     = today_iso
+    data["date_display"] = date_display
+    return data
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MORNING / MIDDAY / AFTERHOURS — lighter format
+# ─────────────────────────────────────────────────────────────────────────────
+
+def build_update_page(data: dict, update_type: str) -> str:
+    date_iso    = data["date_iso"]
+    headline    = data["headline"]
+    summary     = data["summary"]
+    snapshot    = data.get("market_snapshot", [])
+    key_points  = data.get("key_points", [])
+    what_to_watch = data.get("what_to_watch", "")
+    site_url    = f"https://readmarketbrief.com/briefs/{date_iso}-{update_type}.html"
+
+    badge_class = TYPE_BADGE_CSS.get(update_type, "badge-close")
+    type_label  = TYPE_LABELS.get(update_type, update_type.title())
+
+    et_now = now_et()
+    time_str = et_now.strftime("%-I:%M %p ET")
+
+    snap_time = {
+        "morning": "Pre-Market",
+        "midday":  "Midday",
+        "afterhours": "After Hours",
+    }.get(update_type, "Current")
+
+    snap_html = render_market_snapshot(snapshot, snap_time) if snapshot else ""
+
+    key_points_html = ""
+    if key_points:
+        items_html = "\n".join(f"  <li>{pt}</li>" for pt in key_points)
+        key_points_html = (
+            '<div class="section-block">\n'
+            '  <div class="section-label">Key Points</div>\n'
+            f'  <ul class="key-points">\n{items_html}\n  </ul>\n'
+            '</div>\n'
+        )
+
+    watch_html = ""
+    if what_to_watch:
+        if isinstance(what_to_watch, list):
+            items = "\n".join(f"  <p>→ {w}</p>" for w in what_to_watch)
+            watch_html = (
+                '<div class="section-block">\n'
+                '  <div class="watch-box">\n'
+                '    <div class="watch-label">What to Watch</div>\n'
+                f'{items}\n'
+                '  </div>\n'
+                '</div>\n'
+            )
+        else:
+            watch_html = (
+                '<div class="section-block">\n'
+                '  <div class="watch-box">\n'
+                '    <div class="watch-label">What to Watch</div>\n'
+                f'  <p>{what_to_watch}</p>\n'
+                '  </div>\n'
+                '</div>\n'
+            )
+
+    close_link = f'briefs/{date_iso}-close.html'
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{headline} — The Brief</title>
+<meta name="description" content="{data.get('archive_teaser', summary)[:160]}">
+<link rel="canonical" href="{site_url}">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="../favicon.ico">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="manifest" href="../site.webmanifest">
+<meta name="theme-color" content="#0d1b2a">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Mono:wght@300;400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,300&display=swap" rel="stylesheet">
+<style>{UPDATE_CSS}</style>
+</head>
+<body>
 <nav class="brief-nav">
   <a href="../index.html" class="brief-nav-brand">The Brief</a>
   <div class="brief-nav-links">
@@ -538,65 +772,283 @@ def build_page(data: dict) -> str:
   </div>
 </nav>
 
-<div class="masthead">
-  <div class="masthead-eyebrow">Daily Market Intelligence</div>
-  <div class="masthead-title">The Brief</div>
-  <div class="masthead-rule"><span class="masthead-tagline">Finance students &amp; early-career professionals</span></div>
-</div>
-
-<div class="alert-strip">
-  <div class="alert-pip"></div>
-  {alert_strip}
+<div class="update-header">
+  <span class="update-type-badge {badge_class}">{type_label}</span>
+  <div class="update-time">{data.get('date_display', date_iso)} &nbsp;·&nbsp; {time_str}</div>
+  <h1 class="update-headline">{headline}</h1>
+  <p class="update-summary">{summary}</p>
 </div>
 
 <div class="wrap">
-  <div class="issue-kicker">{kicker}</div>
-  <h1 class="issue-headline">{headline}</h1>
-  <p class="opening-summary">{opening}</p>
+{snap_html}
+{key_points_html}
+{watch_html}
 
-{feature_html}
-{market_snap_html}
-
-{article_html}
-
-  <div class="article-cta">
-    <div>
-      <div class="article-cta-text">Enjoyed this issue?</div>
-      <div class="article-cta-headline">Get the next Brief free — every weekday morning.</div>
-    </div>
-    <a href="../subscribe.html" class="btn-cta">Subscribe Free</a>
+  <div class="disclaimer">
+    Market data may be delayed &nbsp;·&nbsp;
+    For informational and educational purposes only. Not investment advice.
   </div>
 
-  <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
-    <a href="../archive.html" style="flex:1;min-width:140px;display:block;border:1.5px solid var(--ink);color:var(--ink);text-align:center;padding:13px 18px;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;text-decoration:none">Browse All Issues</a>
-    <a href="https://www.linkedin.com/sharing/share-offsite/?url={site_url}" target="_blank" rel="noopener" style="flex:1;min-width:140px;display:block;border:1.5px solid var(--rule);color:var(--muted);text-align:center;padding:13px 18px;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;text-decoration:none">Share on LinkedIn</a>
-    <a href="https://twitter.com/intent/tweet?text={share_encoded}" target="_blank" rel="noopener" style="flex:1;min-width:140px;display:block;border:1.5px solid var(--rule);color:var(--muted);text-align:center;padding:13px 18px;font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;text-decoration:none">Share on X</a>
+  <div class="update-cta">
+    <a href="../{close_link}" class="btn-dark">Full Close Recap →</a>
+    <a href="../archive.html" class="btn-outline">All Issues</a>
+    <a href="../subscribe.html" class="btn-outline">Subscribe Free</a>
   </div>
 </div>
-
 </body>
 </html>"""
 
 
+def generate_update(update_type: str, today_iso: str, date_display: str) -> dict | None:
+    """Generate morning, midday, or afterhours update. Returns None to skip publishing."""
+    et_now = now_et()
+    today_fmt = et_now.strftime("%A, %B %-d, %Y")
+    time_fmt  = et_now.strftime("%-I:%M %p ET")
+
+    type_context = {
+        "morning": (
+            "This is a MORNING PRE-MARKET brief, published around 8 AM ET before market open. "
+            "Focus on: overnight macro/geopolitical developments, US futures direction, "
+            "global markets (Europe/Asia closes), rates, oil, crypto, pre-market movers, "
+            "and 3-5 key things to watch today. Be concise — this is a quick read before open."
+        ),
+        "midday": (
+            "This is a MIDDAY UPDATE, published around 12 PM ET. "
+            "Focus on: how US markets are performing mid-session, biggest movers so far, "
+            "key headlines affecting the tape, sector performance, and what to watch into the close. "
+            "Concise and focused — no filler."
+        ),
+        "afterhours": (
+            "This is an AFTER-HOURS UPDATE, published around 6:30 PM ET. "
+            "Focus on: significant earnings releases, guidance, after-hours movers, "
+            "major Fed/macro/geopolitical updates after close. "
+            "IMPORTANT: If nothing meaningful happened after hours, return publish: false. "
+            "Do not publish a thin or empty after-hours update."
+        ),
+    }[update_type]
+
+    system_prompt = f"""You are the writer of "The Brief" — a market intelligence newsletter for finance students and early-career professionals.
+
+{type_context}
+
+RULES:
+- Use web_search to get real, current market data and news. Do not fabricate numbers.
+- If data is unavailable, say "unavailable" — never use placeholder values.
+- Write in a confident, direct, engaging voice. Not boring. Not textbook.
+- Always include: "For informational and educational purposes only. Not investment advice."
+- Use wording like "latest available market data" and "market data may be delayed."
+
+Return ONLY a JSON object with these fields:
+{{
+  "publish": true or false,
+  "date_iso": "{today_iso}",
+  "date_display": "{date_display}",
+  "headline": "Concise, punchy headline",
+  "summary": "2-3 sentence opening summary",
+  "market_snapshot": [
+    {{"label": "S&P 500", "value": "5,432", "change": "+0.45%", "direction": "up"}},
+    {{"label": "Nasdaq", "value": "17,234", "change": "-0.12%", "direction": "down"}},
+    {{"label": "10Y Yield", "value": "4.32%", "change": "+3 bps", "direction": "up"}},
+    {{"label": "WTI Crude", "value": "$82.45", "change": "+0.8%", "direction": "up"}},
+    {{"label": "VIX", "value": "14.2", "change": "-0.5", "direction": "down"}},
+    {{"label": "Bitcoin", "value": "$67,450", "change": "+1.2%", "direction": "up"}}
+  ],
+  "key_points": ["Point 1", "Point 2", "Point 3", "Point 4"],
+  "what_to_watch": ["Watch item 1", "Watch item 2", "Watch item 3"],
+  "archive_teaser": "One sentence description for archive listing.",
+  "homepage_teaser": "One sentence teaser for the homepage card."
+}}
+
+If publish is false, you may omit other fields. Only set publish: false for afterhours with no meaningful news."""
+
+    user_message = (
+        f"Today is {today_fmt}. Current time: {time_fmt}. "
+        "Search for current market data and major news. "
+        "Return ONLY the JSON object. No markdown fences."
+    )
+
+    raw  = call_api(system_prompt, user_message, max_tokens=6000)
+    data = extract_json(raw)
+
+    # Check publish flag first
+    if not data.get("publish", True):
+        print(f"Claude determined no meaningful {update_type} update to publish. Exiting cleanly.")
+        return None
+
+    # Validate required fields
+    missing = [f for f in UPDATE_REQUIRED_FIELDS if f not in data or (isinstance(data[f], str) and not data[f].strip())]
+    if missing:
+        print(f"WARNING: Missing fields in {update_type} response: {missing}")
+
+    data["date_iso"]     = today_iso
+    data["date_display"] = date_display
+    return data
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BREAKING NEWS
+# ─────────────────────────────────────────────────────────────────────────────
+
+def build_breaking_page(data: dict) -> str:
+    date_iso      = data["date_iso"]
+    headline      = data["headline"]
+    slug          = data["slug"]
+    summary       = data["summary"]
+    why_matters   = data["why_it_matters"]
+    market_impact = data.get("market_impact", "")
+    time_str      = data.get("time_et", now_et().strftime("%-I:%M %p ET"))
+    date_display  = data.get("date_display", date_iso)
+
+    et_now = now_et()
+    file_time = et_now.strftime("%H%M")
+    site_url = f"https://readmarketbrief.com/breaking/{date_iso}-{file_time}-{slug}.html"
+
+    impact_html = ""
+    if market_impact:
+        impact_html = (
+            '<div class="breaking-impact">\n'
+            '  <div class="breaking-impact-label">Market Impact</div>\n'
+            f'  <p>{market_impact}</p>\n'
+            '</div>\n'
+        )
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BREAKING: {headline} — The Brief</title>
+<meta name="description" content="{summary[:160]}">
+<link rel="canonical" href="{site_url}">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="../favicon.ico">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="manifest" href="../site.webmanifest">
+<meta name="theme-color" content="#0d1b2a">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Mono:wght@300;400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600&display=swap" rel="stylesheet">
+<style>{UPDATE_CSS}</style>
+</head>
+<body>
+<nav class="brief-nav">
+  <a href="../index.html" class="brief-nav-brand">The Brief</a>
+  <div class="brief-nav-links">
+    <a href="../dashboard.html">Dashboard</a>
+    <a href="../archive.html">Archive</a>
+    <a href="../subscribe.html" class="nav-cta">Subscribe Free</a>
+  </div>
+</nav>
+
+<div class="update-header">
+  <span class="update-type-badge badge-breaking">⚡ Breaking</span>
+  <div class="update-time">{date_display} &nbsp;·&nbsp; {time_str}</div>
+  <h1 class="update-headline">{headline}</h1>
+  <p class="update-summary">{summary}</p>
+</div>
+
+<div class="wrap">
+  <div class="section-block">
+    <div class="section-label">Why It Matters</div>
+    <p>{why_matters}</p>
+  </div>
+{impact_html}
+  <div class="disclaimer">
+    Market data may be delayed &nbsp;·&nbsp;
+    For informational and educational purposes only. Not investment advice.
+  </div>
+  <div class="update-cta">
+    <a href="../archive.html" class="btn-dark">Full Archive</a>
+    <a href="../subscribe.html" class="btn-outline">Subscribe Free</a>
+  </div>
+</div>
+</body>
+</html>"""
+
+
+def generate_breaking(today_iso: str, date_display: str) -> dict | None:
+    et_now    = now_et()
+    today_fmt = et_now.strftime("%A, %B %-d, %Y")
+    time_fmt  = et_now.strftime("%-I:%M %p ET")
+
+    system_prompt = """You are the editor of "The Brief" — a finance newsletter for students and early-career professionals.
+
+Your task: determine if there is GENUINELY MAJOR market-moving news right now that warrants a breaking alert.
+
+Breaking-worthy events ONLY:
+- Fed emergency decision or highly unexpected FOMC action
+- CPI/jobs data shock (major deviation from expectations)
+- S&P 500 move > 2% intraday
+- Major geopolitical escalation with direct market impact
+- Bank failure or financial crisis development
+- Massive earnings surprise from top-5 market cap company
+- Major regulatory action (antitrust, SEC enforcement on large scale)
+- Significant M&A, bankruptcy, or major corporate event from S&P 500 constituent
+
+NOT breaking-worthy:
+- Normal market moves
+- Routine earnings results
+- Expected Fed decisions
+- Standard economic data within expectations
+- General news without immediate market impact
+
+Search for current news. If nothing genuinely breaking, return {"publish": false}.
+
+If breaking news exists, return:
+{
+  "publish": true,
+  "date_iso": "YYYY-MM-DD",
+  "date_display": "Day, Month D, YYYY",
+  "headline": "Breaking headline",
+  "slug": "short-url-slug",
+  "time_et": "H:MM AM/PM ET",
+  "summary": "2-3 sentence summary of what happened",
+  "why_it_matters": "Why this matters for markets and finance professionals",
+  "market_impact": "Specific market impact if known (indices, sectors, specific stocks)"
+}"""
+
+    user_message = (
+        f"Today is {today_fmt}. Current time: {time_fmt}. "
+        "Search for any genuinely major breaking market news right now. "
+        "Return ONLY the JSON. No markdown fences."
+    )
+
+    raw  = call_api(system_prompt, user_message, max_tokens=3000)
+    data = extract_json(raw)
+
+    if not data.get("publish", True):
+        print("No breaking news warranting publication. Exiting cleanly.")
+        return None
+
+    for field in BREAKING_REQUIRED_FIELDS:
+        if field not in data:
+            print(f"ERROR: Breaking response missing field: {field}")
+            sys.exit(1)
+
+    data["date_iso"]     = today_iso
+    data["date_display"] = date_display
+    return data
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# File writing & site updates
+# ─────────────────────────────────────────────────────────────────────────────
+
 def save_linkedin(data: dict, date_iso: str) -> None:
     LINKEDIN_DIR.mkdir(exist_ok=True)
-    site_url = f"https://readmarketbrief.com/briefs/{date_iso}.html"
-    copy = data["linkedin_post"].replace("{{URL}}", site_url)
-    out = LINKEDIN_DIR / f"{date_iso}.txt"
-    out.write_text(copy, encoding="utf-8")
-    print(f"LinkedIn copy saved: {out}")
+    site_url = f"https://readmarketbrief.com/briefs/{date_iso}-close.html"
+    copy = data.get("linkedin_post", "").replace("{{URL}}", site_url)
+    if copy.strip():
+        out = LINKEDIN_DIR / f"{date_iso}.txt"
+        out.write_text(copy, encoding="utf-8")
+        print(f"LinkedIn copy saved: {out}")
 
 
-def update_index(data: dict, date_iso: str) -> None:
+def update_index_close(data: dict, date_iso: str) -> None:
+    """Update homepage with the close/main brief card."""
     content = INDEX_HTML.read_text(encoding="utf-8")
 
-    # Tags — up to 3, defaulting to generic if absent
     tags = data.get("tags", ["Rates", "Equities", "Wealth Management"])
-    if not isinstance(tags, list) or not tags:
-        tags = ["Rates", "Equities", "Wealth Management"]
     tag_html = "".join(f'<span class="tag">{t}</span>' for t in tags[:3])
 
-    # Mini snapshot — first 3 market items
     snap = data.get("market_snapshot", [])[:3]
     mini_rows = ""
     for item in snap:
@@ -609,96 +1061,242 @@ def update_index(data: dict, date_iso: str) -> None:
             f'<div class="mini-change {direction}">{arrow} {item["change"]}</div>'
             f'</div>\n'
         )
-    mini_html = (
-        f'      <div class="mini-snapshot">\n{mini_rows}      </div>\n'
-        if mini_rows else ""
-    )
+    mini_html = f'      <div class="mini-snapshot">\n{mini_rows}      </div>\n' if mini_rows else ""
+
+    brief_path = f"briefs/{date_iso}-close.html"
 
     new_block = (
         "    <!-- LATEST_BRIEF_START -->\n"
         "    <div class=\"latest-card\">\n"
         "      <div class=\"latest-card-header\">\n"
-        "        <span class=\"latest-label\">Most Recent Brief</span>\n"
+        "        <span class=\"latest-label\">Today's Brief</span>\n"
         f"        <span class=\"latest-date\">{data['date_display']}</span>\n"
         "      </div>\n"
         "      <div class=\"latest-card-body\">\n"
         f"        <div class=\"latest-title\">{data['headline']}</div>\n"
-        f"        <p class=\"latest-teaser\">{data['homepage_teaser']}</p>\n"
+        f"        <p class=\"latest-teaser\">{data.get('homepage_teaser','')}</p>\n"
         f"        <div class=\"tag-row\">{tag_html}</div>\n"
         "      </div>\n"
-        "      <div class=\"latest-card-footer\">\n"
-        f"        <a href=\"briefs/{date_iso}.html\" class=\"btn btn-dark\">Read Full Issue &rarr;</a>\n"
-        "      </div>\n"
         f"{mini_html}"
+        "      <div class=\"latest-card-footer\">\n"
+        f"        <a href=\"{brief_path}\" class=\"btn btn-dark\">Read Full Issue &rarr;</a>\n"
+        "      </div>\n"
         "    </div>\n"
         "    <!-- LATEST_BRIEF_END -->"
     )
+
+    # Also update the hero button
+    updated = re.sub(
+        r'href="briefs/[\d\-]+(?:-close)?\.html"(\s+class="btn btn-outline-white">Read Today\'s Brief)',
+        f'href="{brief_path}"\\1',
+        content,
+    )
+
     updated = re.sub(
         r"<!-- LATEST_BRIEF_START -->.*?<!-- LATEST_BRIEF_END -->",
         lambda _: new_block,
-        content,
+        updated,
         flags=re.DOTALL,
     )
+
     if updated == content:
-        print("WARNING: LATEST_BRIEF_START/END not found in index.html.")
+        print("WARNING: LATEST_BRIEF markers not found in index.html.")
     else:
         INDEX_HTML.write_text(updated, encoding="utf-8")
-        print("index.html updated.")
+        print("index.html updated (close).")
 
 
-def update_archive(data: dict, date_iso: str) -> None:
+def update_index_morning(data: dict, date_iso: str) -> None:
+    """Update homepage hero link to the morning brief."""
+    content = INDEX_HTML.read_text(encoding="utf-8")
+    brief_path = f"briefs/{date_iso}-morning.html"
+    updated = re.sub(
+        r'href="briefs/[\d\-]+(?:-\w+)?\.html"(\s+class="btn btn-outline-white">Read Today\'s Brief)',
+        f'href="{brief_path}"\\1',
+        content,
+    )
+    if updated != content:
+        INDEX_HTML.write_text(updated, encoding="utf-8")
+        print("index.html hero updated (morning).")
+
+
+def update_index_breaking(data: dict, date_iso: str, filename: str) -> None:
+    """Add/update breaking news banner in index.html."""
+    content = INDEX_HTML.read_text(encoding="utf-8")
+    breaking_url = f"breaking/{filename}"
+    headline = data["headline"]
+
+    banner = (
+        "<!-- BREAKING_BANNER_START -->\n"
+        "<div style=\"background:#b52020;color:#fff;padding:10px 20px;text-align:center;"
+        "font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;"
+        "text-transform:uppercase;display:flex;align-items:center;justify-content:center;"
+        "gap:12px;flex-wrap:wrap\">\n"
+        "  <span style=\"animation:blink 1.2s ease-in-out infinite;display:inline-block\">"
+        "&#9889; BREAKING</span>\n"
+        f"  <a href=\"{breaking_url}\" style=\"color:#fff;text-decoration:underline;"
+        f"font-size:11px;letter-spacing:.04em;text-transform:none\">{headline}</a>\n"
+        "</div>\n"
+        "<!-- BREAKING_BANNER_END -->"
+    )
+
+    if "<!-- BREAKING_BANNER_START -->" in content:
+        updated = re.sub(
+            r"<!-- BREAKING_BANNER_START -->.*?<!-- BREAKING_BANNER_END -->",
+            banner,
+            content,
+            flags=re.DOTALL,
+        )
+    else:
+        # Inject after <body> tag
+        updated = content.replace("<body>", f"<body>\n{banner}", 1)
+
+    if updated != content:
+        INDEX_HTML.write_text(updated, encoding="utf-8")
+        print("index.html updated (breaking banner).")
+
+
+def update_archive(data: dict, date_iso: str, update_type: str, url_path: str) -> None:
     content = ARCHIVE_HTML.read_text(encoding="utf-8")
     parts = date_iso.split("-")
     month_abbr = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][int(parts[1])]
     day, year = int(parts[2]), parts[0]
+
+    badge_class = TYPE_BADGE_CSS.get(update_type, "badge-close")
+    type_label  = TYPE_LABELS.get(update_type, update_type.title())
+    headline    = data.get("headline", "Market Update")
+    teaser      = data.get("archive_teaser", data.get("summary", ""))
+
+    badge_html = (
+        f'<span style="display:inline-block;font-family:\'DM Mono\',monospace;'
+        f'font-size:8px;letter-spacing:.16em;text-transform:uppercase;'
+        f'padding:2px 8px;margin-bottom:5px;border-radius:2px;" '
+        f'class="{badge_class}">{type_label}</span>'
+    )
+
     new_item = (
         f"\n    <li class=\"archive-item\">\n"
         f"      <div class=\"archive-date\">{month_abbr} {day}<br>{year}</div>\n"
         f"      <div>\n"
-        f"        <a class=\"archive-title\" href=\"briefs/{date_iso}.html\">{data['headline']}</a>\n"
-        f"        <p class=\"archive-teaser\">{data['archive_teaser']}</p>\n"
+        f"        {badge_html}\n"
+        f"        <a class=\"archive-title\" href=\"{url_path}\">{headline}</a>\n"
+        f"        <p class=\"archive-teaser\">{teaser}</p>\n"
         f"      </div>\n"
         f"    </li>\n"
     )
+
     updated = re.sub(
         r"(<!-- ARCHIVE_LIST_START -->\s*<ul[^>]*>)",
         lambda m: m.group(0) + new_item,
         content,
         flags=re.DOTALL,
     )
+
     if updated == content:
         print("WARNING: ARCHIVE_LIST_START not found in archive.html.")
     else:
         ARCHIVE_HTML.write_text(updated, encoding="utf-8")
-        print("archive.html updated.")
+        print(f"archive.html updated ({update_type}).")
 
+
+def update_sitemap(url: str) -> None:
+    content = SITEMAP_XML.read_text(encoding="utf-8")
+    if url in content:
+        return
+    new_entry = f"  <url>\n    <loc>{url}</loc>\n  </url>\n"
+    updated = content.replace("</urlset>", new_entry + "</urlset>")
+    SITEMAP_XML.write_text(updated, encoding="utf-8")
+    print(f"sitemap.xml updated: {url}")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Main
+# ─────────────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    print("=== The Brief — Daily Generator ===")
+    parser = argparse.ArgumentParser(description="The Brief — market update generator")
+    parser.add_argument(
+        "--type",
+        choices=UPDATE_TYPES,
+        default="auto",
+        help="Update type to generate (default: auto)",
+    )
+    args = parser.parse_args()
+    update_type = args.type
 
-    if not SYSTEM_PROMPT_FILE.exists():
-        print(f"ERROR: System prompt not found at {SYSTEM_PROMPT_FILE}")
-        sys.exit(1)
+    et_now = now_et()
+    today_iso    = et_now.strftime("%Y-%m-%d")
+    date_display = et_now.strftime("%A, %B %-d, %Y")
 
-    system_prompt = SYSTEM_PROMPT_FILE.read_text(encoding="utf-8")
-    raw  = call_api(system_prompt)
-    data = extract_json(raw)
-    validate(data)
+    print(f"=== The Brief — {update_type.upper()} Generator ===")
+    print(f"Eastern Time: {et_now.strftime('%Y-%m-%d %H:%M %Z')}")
 
-    date_iso = data["date_iso"]
-    out_path = BRIEFS_DIR / f"{date_iso}.html"
-    if out_path.exists():
-        print(f"WARNING: {out_path} already exists. Overwriting.")
+    # Auto-detect update type from ET schedule
+    if update_type == "auto":
+        detected = determine_update_type()
+        if detected is None:
+            print(f"No update scheduled at {et_now.strftime('%H:%M ET')}. Exiting cleanly.")
+            sys.exit(0)
+        update_type = detected
+        print(f"Auto-detected update type: {update_type}")
 
-    html = build_page(data)
-    out_path.write_text(html, encoding="utf-8")
-    print(f"Brief written: {out_path}")
+    BRIEFS_DIR.mkdir(exist_ok=True)
+    BREAKING_DIR.mkdir(exist_ok=True)
 
-    save_linkedin(data, date_iso)
-    update_index(data, date_iso)
-    update_archive(data, date_iso)
-    print("=== Done. ===")
+    # ── Close (full daily brief) ──────────────────────────────────────────────
+    if update_type == "close":
+        data = generate_close(today_iso, date_display)
+        filename = f"{today_iso}-close.html"
+        out_path = BRIEFS_DIR / filename
+        if out_path.exists():
+            print(f"WARNING: {out_path} already exists. Overwriting.")
+        out_path.write_text(build_close_page(data), encoding="utf-8")
+        print(f"Written: {out_path}")
+        save_linkedin(data, today_iso)
+        update_index_close(data, today_iso)
+        update_archive(data, today_iso, "close", f"briefs/{filename}")
+        update_sitemap(f"https://readmarketbrief.com/briefs/{filename}")
+
+    # ── Morning / Midday / Afterhours ─────────────────────────────────────────
+    elif update_type in ("morning", "midday", "afterhours"):
+        data = generate_update(update_type, today_iso, date_display)
+        if data is None:
+            sys.exit(0)  # Clean exit — nothing to publish
+
+        filename = f"{today_iso}-{update_type}.html"
+        out_path = BRIEFS_DIR / filename
+        if out_path.exists():
+            print(f"WARNING: {out_path} already exists. Overwriting.")
+        out_path.write_text(build_update_page(data, update_type), encoding="utf-8")
+        print(f"Written: {out_path}")
+
+        if update_type == "morning":
+            update_index_morning(data, today_iso)
+
+        update_archive(data, today_iso, update_type, f"briefs/{filename}")
+        update_sitemap(f"https://readmarketbrief.com/briefs/{filename}")
+
+    # ── Breaking ──────────────────────────────────────────────────────────────
+    elif update_type == "breaking":
+        data = generate_breaking(today_iso, date_display)
+        if data is None:
+            sys.exit(0)  # Clean exit — nothing breaking
+
+        file_time = et_now.strftime("%H%M")
+        slug      = data.get("slug", "market-alert")
+        slug      = re.sub(r"[^a-z0-9-]", "", slug.lower().replace(" ", "-"))[:40]
+        filename  = f"{today_iso}-{file_time}-{slug}.html"
+
+        out_path = BREAKING_DIR / filename
+        out_path.write_text(build_breaking_page(data), encoding="utf-8")
+        print(f"Written: {out_path}")
+
+        update_index_breaking(data, today_iso, filename)
+        update_archive(data, today_iso, "breaking", f"breaking/{filename}")
+        update_sitemap(f"https://readmarketbrief.com/breaking/{filename}")
+
+    print(f"=== Done: {update_type} ===")
 
 
 if __name__ == "__main__":
