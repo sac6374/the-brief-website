@@ -799,31 +799,31 @@ def build_update_page(data: dict, update_type: str) -> str:
 </html>"""
 
 
-def generate_update(update_type: str, today_iso: str, date_display: str) -> dict | None:
-    """Generate morning, midday, or afterhours update. Returns None to skip publishing."""
-    et_now = now_et()
+def generate_scheduled_update(update_type: str, today_iso: str, date_display: str) -> dict:
+    """
+    Generate a MORNING or MIDDAY update. These always publish — no conditional logic.
+    The workflow runs them on a fixed schedule and they always produce a file.
+    """
+    assert update_type in ("morning", "midday"), f"generate_scheduled_update called with {update_type}"
+
+    et_now    = now_et()
     today_fmt = et_now.strftime("%A, %B %-d, %Y")
     time_fmt  = et_now.strftime("%-I:%M %p ET")
 
     type_context = {
         "morning": (
-            "This is a MORNING PRE-MARKET brief, published around 8 AM ET before market open. "
-            "Focus on: overnight macro/geopolitical developments, US futures direction, "
-            "global markets (Europe/Asia closes), rates, oil, crypto, pre-market movers, "
-            "and 3-5 key things to watch today. Be concise — this is a quick read before open."
+            "This is the MORNING PRE-MARKET brief, published at 8 AM ET before market open. "
+            "Always publish — this runs every weekday morning regardless of market conditions. "
+            "Cover: overnight macro/geopolitical developments, US futures direction, "
+            "global markets (Europe/Asia overnight), rates, oil, crypto, pre-market movers, "
+            "and 3-5 key things to watch today. Concise — a quick read before open."
         ),
         "midday": (
-            "This is a MIDDAY UPDATE, published around 12 PM ET. "
-            "Focus on: how US markets are performing mid-session, biggest movers so far, "
-            "key headlines affecting the tape, sector performance, and what to watch into the close. "
+            "This is the MIDDAY UPDATE, published at 12 PM ET during the trading session. "
+            "Always publish — this runs every weekday at noon. "
+            "Cover: how US markets are performing mid-session, biggest movers so far, "
+            "key headlines affecting the tape, sector performance, what to watch into the close. "
             "Concise and focused — no filler."
-        ),
-        "afterhours": (
-            "This is an AFTER-HOURS UPDATE, published around 6:30 PM ET. "
-            "Focus on: significant earnings releases, guidance, after-hours movers, "
-            "major Fed/macro/geopolitical updates after close. "
-            "IMPORTANT: If nothing meaningful happened after hours, return publish: false. "
-            "Do not publish a thin or empty after-hours update."
         ),
     }[update_type]
 
@@ -833,52 +833,136 @@ def generate_update(update_type: str, today_iso: str, date_display: str) -> dict
 
 RULES:
 - Use web_search to get real, current market data and news. Do not fabricate numbers.
-- If data is unavailable, say "unavailable" — never use placeholder values.
+- If specific data is unavailable, write "unavailable" — never use placeholder values.
 - Write in a confident, direct, engaging voice. Not boring. Not textbook.
 - Always include: "For informational and educational purposes only. Not investment advice."
 - Use wording like "latest available market data" and "market data may be delayed."
 
-Return ONLY a JSON object with these fields:
+Return ONLY a valid JSON object with exactly these fields — no markdown fences, no extra text:
 {{
-  "publish": true or false,
   "date_iso": "{today_iso}",
   "date_display": "{date_display}",
   "headline": "Concise, punchy headline",
   "summary": "2-3 sentence opening summary",
   "market_snapshot": [
-    {{"label": "S&P 500", "value": "5,432", "change": "+0.45%", "direction": "up"}},
-    {{"label": "Nasdaq", "value": "17,234", "change": "-0.12%", "direction": "down"}},
-    {{"label": "10Y Yield", "value": "4.32%", "change": "+3 bps", "direction": "up"}},
-    {{"label": "WTI Crude", "value": "$82.45", "change": "+0.8%", "direction": "up"}},
-    {{"label": "VIX", "value": "14.2", "change": "-0.5", "direction": "down"}},
-    {{"label": "Bitcoin", "value": "$67,450", "change": "+1.2%", "direction": "up"}}
+    {{"label": "S&P 500",   "value": "5,432",   "change": "+0.45%", "direction": "up"}},
+    {{"label": "Nasdaq",    "value": "17,234",  "change": "-0.12%", "direction": "down"}},
+    {{"label": "10Y Yield", "value": "4.32%",   "change": "+3 bps", "direction": "up"}},
+    {{"label": "WTI Crude", "value": "$82.45",  "change": "+0.8%",  "direction": "up"}},
+    {{"label": "VIX",       "value": "14.2",    "change": "-0.5",   "direction": "down"}},
+    {{"label": "Bitcoin",   "value": "$67,450", "change": "+1.2%",  "direction": "up"}}
   ],
   "key_points": ["Point 1", "Point 2", "Point 3", "Point 4"],
   "what_to_watch": ["Watch item 1", "Watch item 2", "Watch item 3"],
-  "archive_teaser": "One sentence description for archive listing.",
+  "archive_teaser": "One sentence for the archive listing.",
   "homepage_teaser": "One sentence teaser for the homepage card."
-}}
-
-If publish is false, you may omit other fields. Only set publish: false for afterhours with no meaningful news."""
+}}"""
 
     user_message = (
         f"Today is {today_fmt}. Current time: {time_fmt}. "
-        "Search for current market data and major news. "
-        "Return ONLY the JSON object. No markdown fences."
+        "Search for current market data and the biggest stories. "
+        "Return ONLY the JSON object."
     )
 
     raw  = call_api(system_prompt, user_message, max_tokens=6000)
     data = extract_json(raw)
 
-    # Check publish flag first
-    if not data.get("publish", True):
-        print(f"Claude determined no meaningful {update_type} update to publish. Exiting cleanly.")
-        return None
-
-    # Validate required fields
-    missing = [f for f in UPDATE_REQUIRED_FIELDS if f not in data or (isinstance(data[f], str) and not data[f].strip())]
+    missing = [f for f in UPDATE_REQUIRED_FIELDS if f not in ("publish",) and
+               (f not in data or (isinstance(data[f], str) and not data[f].strip()))]
     if missing:
         print(f"WARNING: Missing fields in {update_type} response: {missing}")
+
+    data["date_iso"]     = today_iso
+    data["date_display"] = date_display
+    return data
+
+
+def generate_afterhours(today_iso: str, date_display: str) -> dict | None:
+    """
+    Conditional after-hours check. Runs at 6:30 PM ET but only publishes if there
+    is genuinely meaningful after-hours market-moving news. Returns None to skip.
+
+    Publish threshold — at least ONE of the following must be true:
+    - Major earnings release with significant guidance, beat/miss, or after-hours move > 3%
+      from an S&P 500 company
+    - A meaningful Fed, Treasury, or macro development after market close
+    - A significant geopolitical event with direct and immediate market impact
+    - A major M&A announcement, bankruptcy filing, or regulatory action involving a large company
+    - A large move in oil, gold, crypto, or rates (>2%) driven by a specific post-close catalyst
+
+    Do NOT publish for:
+    - A quiet after-hours session with no significant news
+    - Routine small earnings beats/misses from mid/small-cap companies
+    - General recap of the day's close (that belongs in the close brief)
+    - Vague or speculative news without confirmed market impact
+    """
+    et_now    = now_et()
+    today_fmt = et_now.strftime("%A, %B %-d, %Y")
+    time_fmt  = et_now.strftime("%-I:%M %p ET")
+
+    system_prompt = f"""You are the editor of "The Brief" — a finance newsletter for students and early-career professionals.
+
+Your task at 6:30 PM ET: check whether there is meaningful after-hours market-moving news that warrants publishing an after-hours update.
+
+PUBLISH ONLY IF at least one of these conditions is met:
+1. A major S&P 500 company reported earnings with a significant beat/miss, major guidance change, or after-hours stock move > 3%
+2. A Fed, Treasury, or central bank development occurred after market close (statement, emergency action, major official speech)
+3. A geopolitical event with direct and immediate market impact (conflict escalation, major sanctions, trade deal/breakdown)
+4. A major M&A announcement, large-scale bankruptcy filing, or significant regulatory action (antitrust, SEC/DOJ enforcement)
+5. A large move in oil, gold, crypto, or rates (>2%) driven by a specific confirmed post-close catalyst
+
+DO NOT PUBLISH IF:
+- The after-hours session is quiet with no news meeting the above criteria
+- Only routine mid/small-cap earnings with no major surprise
+- Nothing beyond what was already covered in the close brief
+- The "news" is vague, speculative, or unconfirmed
+
+Use web_search to check for after-hours earnings and news right now.
+
+If no meaningful news meets the publish criteria, return ONLY:
+{{"publish": false}}
+
+If meaningful news exists, return ONLY a valid JSON object:
+{{
+  "publish": true,
+  "date_iso": "{today_iso}",
+  "date_display": "{date_display}",
+  "headline": "Concise headline describing the after-hours development",
+  "summary": "2-3 sentences on what happened and why it matters",
+  "market_snapshot": [
+    {{"label": "S&P 500 Futures", "value": "5,432", "change": "+0.2%", "direction": "up"}},
+    {{"label": "Nasdaq Futures",  "value": "17,234", "change": "-0.1%", "direction": "down"}},
+    {{"label": "10Y Yield",       "value": "4.32%",  "change": "flat",  "direction": "flat"}},
+    {{"label": "Bitcoin",         "value": "$67,450", "change": "+1.2%", "direction": "up"}}
+  ],
+  "key_points": ["Specific point about what moved", "Why it matters", "What to watch tomorrow"],
+  "what_to_watch": ["Tomorrow catalyst 1", "Tomorrow catalyst 2"],
+  "archive_teaser": "One sentence for the archive.",
+  "homepage_teaser": "One sentence teaser for the homepage."
+}}
+
+No markdown fences. No extra text. JSON only."""
+
+    user_message = (
+        f"Today is {today_fmt}. Current time: {time_fmt}. "
+        "Check for meaningful after-hours earnings and market news right now. "
+        "Apply the publish criteria strictly. "
+        "Return ONLY the JSON object."
+    )
+
+    raw  = call_api(system_prompt, user_message, max_tokens=4000)
+    data = extract_json(raw)
+
+    if not data.get("publish", True):
+        print("After-hours check: no meaningful news meets publish criteria. Exiting cleanly.")
+        return None
+
+    print("After-hours check: meaningful news found — publishing.")
+
+    missing = [f for f in UPDATE_REQUIRED_FIELDS if f not in ("publish",) and
+               (f not in data or (isinstance(data[f], str) and not data[f].strip()))]
+    if missing:
+        print(f"WARNING: Missing fields in afterhours response: {missing}")
 
     data["date_iso"]     = today_iso
     data["date_display"] = date_display
@@ -1258,11 +1342,9 @@ def main() -> None:
         update_archive(data, today_iso, "close", f"briefs/{filename}")
         update_sitemap(f"https://readmarketbrief.com/briefs/{filename}")
 
-    # ── Morning / Midday / Afterhours ─────────────────────────────────────────
-    elif update_type in ("morning", "midday", "afterhours"):
-        data = generate_update(update_type, today_iso, date_display)
-        if data is None:
-            sys.exit(0)  # Clean exit — nothing to publish
+    # ── Morning / Midday — always publish ────────────────────────────────────
+    elif update_type in ("morning", "midday"):
+        data = generate_scheduled_update(update_type, today_iso, date_display)
 
         filename = f"{today_iso}-{update_type}.html"
         out_path = BRIEFS_DIR / filename
@@ -1275,6 +1357,23 @@ def main() -> None:
             update_index_morning(data, today_iso)
 
         update_archive(data, today_iso, update_type, f"briefs/{filename}")
+        update_sitemap(f"https://readmarketbrief.com/briefs/{filename}")
+
+    # ── Afterhours — conditional: only publish if meaningful news ─────────────
+    elif update_type == "afterhours":
+        data = generate_afterhours(today_iso, date_display)
+        if data is None:
+            print("No after-hours post published. No files changed.")
+            sys.exit(0)  # Clean exit — workflow will not commit anything
+
+        filename = f"{today_iso}-afterhours.html"
+        out_path = BRIEFS_DIR / filename
+        if out_path.exists():
+            print(f"WARNING: {out_path} already exists. Overwriting.")
+        out_path.write_text(build_update_page(data, "afterhours"), encoding="utf-8")
+        print(f"Written: {out_path}")
+
+        update_archive(data, today_iso, "afterhours", f"briefs/{filename}")
         update_sitemap(f"https://readmarketbrief.com/briefs/{filename}")
 
     # ── Breaking ──────────────────────────────────────────────────────────────
