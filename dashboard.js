@@ -170,16 +170,19 @@ function renderSentiment(sentiment, ts) {
   const ny = cy - (r - 8) * Math.sin(toRad(needleA));
 
   el.innerHTML = `
-    <svg class="dc-gauge-svg" viewBox="0 0 190 108" xmlns="http://www.w3.org/2000/svg">
+    <svg class="dc-gauge-svg" viewBox="0 0 190 108" xmlns="http://www.w3.org/2000/svg"
+         role="img" aria-labelledby="gauge-title gauge-desc">
+      <title id="gauge-title">Market Sentiment Gauge</title>
+      <desc id="gauge-desc">Score: ${score} out of 100 — ${label}. ${desc}</desc>
       <path d="M${cx-r},${cy} A${r},${r} 0 0 1 ${cx+r},${cy}" stroke="rgba(255,255,255,0.05)" stroke-width="9" fill="none" stroke-linecap="butt"/>
       ${zones.map(z => `<path d="${arc(z.a1,z.a2)}" stroke="${z.c}" stroke-width="9" fill="none" stroke-linecap="butt" opacity="0.8"/>`).join('')}
       <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
       <circle cx="${cx}" cy="${cy}" r="4" fill="${color}"/>
       <circle cx="${cx}" cy="${cy}" r="1.8" fill="#0d1117"/>
-      <text x="8" y="106" font-size="7" fill="rgba(255,255,255,0.25)" font-family="monospace">Fear</text>
-      <text x="152" y="106" font-size="7" fill="rgba(255,255,255,0.25)" font-family="monospace">Greed</text>
+      <text x="8" y="106" font-size="7" fill="rgba(255,255,255,0.25)" font-family="monospace" aria-hidden="true">Fear</text>
+      <text x="152" y="106" font-size="7" fill="rgba(255,255,255,0.25)" font-family="monospace" aria-hidden="true">Greed</text>
     </svg>
-    <div class="dc-gauge-num" style="color:${color}">${score}</div>
+    <div class="dc-gauge-num" style="color:${color}" aria-hidden="true">${score}</div>
     <div class="dc-gauge-lbl" style="color:${color}">${label}</div>
     <div class="dc-gauge-desc">${desc}</div>
     <div class="dc-gauge-note">Derived from VIX${vix != null ? ` (${vix.toFixed(2)})` : ''} · Not the CNN Fear &amp; Greed Index</div>`;
@@ -377,7 +380,7 @@ async function lookupStock(symbol) {
       </div>
       <div class="dq-range" id="range-bar">${rangeBtns}</div>
       <div class="dq-chartbox" id="chart-box">
-        <canvas id="stock-chart"></canvas>
+        <canvas id="stock-chart" role="img" aria-label="Price chart for ${data.symbol}"></canvas>
         <div class="dq-chart-overlay">Loading chart…</div>
       </div>
       <div class="dq-stats">

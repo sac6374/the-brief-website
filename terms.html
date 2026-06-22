@@ -15,8 +15,10 @@
 </head>
 <body>
 
-<nav class="site-nav">
-  <a href="index.html" class="nav-brand">The Brief</a>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<nav class="site-nav" aria-label="Main navigation">
+  <a href="index.html" class="nav-brand" aria-label="The Brief — Home">The Brief</a>
   <div class="nav-links">
     <a href="dashboard.html" class="nav-hide-mobile">Dashboard</a>
     <a href="archive.html" class="nav-hide-mobile">Archive</a>
@@ -25,9 +27,11 @@
   </div>
 </nav>
 
+<main id="main-content">
+
 <div class="page-header">
   <div class="page-header-eyebrow">Read Market Brief</div>
-  <div class="page-header-title">Terms &amp; Disclaimers</div>
+  <h1 class="page-header-title">Terms &amp; Disclaimers</h1>
 </div>
 
 <div class="wrap-narrow">
@@ -67,10 +71,12 @@
 
 </div>
 
+</main>
+
 <footer class="site-footer">
   The Brief &nbsp;·&nbsp; Daily Market Intelligence<br>
   <a href="about.html">About</a> &nbsp;·&nbsp; <a href="archive.html">Archive</a> &nbsp;·&nbsp; <a href="subscribe.html">Subscribe</a> &nbsp;·&nbsp; <a href="terms.html">Terms</a><br>
-  Not investment advice &nbsp;·&nbsp; For educational purposes only
+  <small>Not investment advice &nbsp;·&nbsp; For educational purposes only</small>
 </footer>
 
 </body>

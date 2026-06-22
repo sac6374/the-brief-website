@@ -60,6 +60,7 @@
     toast.id = "brief-toast";
     toast.setAttribute("role", "status");
     toast.setAttribute("aria-live", "polite");
+    toast.setAttribute("aria-atomic", "true");
     toast.style.cssText = isError ? ERROR_CSS : TOAST_CSS;
     toast.textContent = message;
     document.body.appendChild(toast);

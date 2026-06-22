@@ -15,8 +15,10 @@
 </head>
 <body>
 
-<nav class="site-nav">
-  <a href="index.html" class="nav-brand">The Brief</a>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<nav class="site-nav" aria-label="Main navigation">
+  <a href="index.html" class="nav-brand" aria-label="The Brief — Home">The Brief</a>
   <div class="nav-links">
     <a href="dashboard.html" class="nav-hide-mobile">Dashboard</a>
     <a href="archive.html" class="nav-hide-mobile">Archive</a>
@@ -25,10 +27,12 @@
   </div>
 </nav>
 
+<main id="main-content">
+
 <!-- ── Hero ── -->
-<section class="hero">
+<section class="hero" aria-labelledby="hero-heading">
   <div class="hero-overline">Daily Market Intelligence</div>
-  <h1 class="hero-headline">Understand the market before your next finance conversation.</h1>
+  <h1 class="hero-headline" id="hero-heading">Understand the market before your next finance conversation.</h1>
   <p class="hero-sub">The Brief turns the day's biggest market moves into clear, interview-ready insight for finance students and early-career professionals.</p>
   <div class="hero-ctas">
     <a href="subscribe.html" class="btn btn-gold">Subscribe Free</a>
@@ -186,9 +190,10 @@
     <div class="overline overline-white overline-center">Free. No spam. Unsubscribe any time.</div>
     <h2 class="on-dark">Get smarter before the market opens.</h2>
     <p class="on-dark" style="font-size:16px;line-height:1.82;margin-bottom:0">Free weekday market intelligence for finance students recruiting across investment banking, equity research, wealth management, asset management, and beyond.</p>
-    <form class="subscribe-form inverted" action="https://formspree.io/f/xpqegpgb" method="POST" style="max-width:420px;margin:28px auto 0;text-align:left">
+    <form class="subscribe-form inverted" action="https://formspree.io/f/xpqegpgb" method="POST" style="max-width:420px;margin:28px auto 0;text-align:left" aria-label="Subscribe to The Brief newsletter">
       <div class="form-row">
-        <input type="email" name="email" placeholder="your@email.com" required>
+        <label for="email-home" class="sr-only">Email address</label>
+        <input type="email" id="email-home" name="email" placeholder="your@email.com" required autocomplete="email">
         <input type="hidden" name="_subject" value="New Brief subscriber">
         <button type="submit">Subscribe Free</button>
       </div>
@@ -197,10 +202,12 @@
   </div>
 </section>
 
+</main>
+
 <footer class="site-footer">
   The Brief &nbsp;·&nbsp; Daily Market Intelligence<br>
   <a href="about.html">About</a> &nbsp;·&nbsp; <a href="archive.html">Archive</a> &nbsp;·&nbsp; <a href="subscribe.html">Subscribe</a> &nbsp;·&nbsp; <a href="terms.html">Terms</a><br>
-  Not investment advice &nbsp;·&nbsp; For educational purposes only
+  <small>Not investment advice &nbsp;·&nbsp; For educational purposes only</small>
 </footer>
 
 <script src="subscribe.js"></script>

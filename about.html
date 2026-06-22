@@ -15,17 +15,21 @@
 </head>
 <body>
 
-<nav class="site-nav">
-  <a href="index.html" class="nav-brand">The Brief</a>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<nav class="site-nav" aria-label="Main navigation">
+  <a href="index.html" class="nav-brand" aria-label="The Brief — Home">The Brief</a>
   <div class="nav-links">
     <a href="dashboard.html" class="nav-hide-mobile">Dashboard</a>
     <a href="archive.html" class="nav-hide-mobile">Archive</a>
-    <a href="about.html" class="active nav-hide-mobile">About</a>
+    <a href="about.html" class="active nav-hide-mobile" aria-current="page">About</a>
     <a href="subscribe.html" class="nav-cta">Subscribe Free</a>
   </div>
 </nav>
 
-<div class="masthead">
+<main id="main-content">
+
+<div class="masthead" aria-hidden="true">
   <div class="masthead-eyebrow">Daily Market Intelligence</div>
   <div class="masthead-title">The Brief</div>
   <div class="masthead-rule">
@@ -110,10 +114,12 @@
 
 </div><!-- /wrap-narrow -->
 
+</main>
+
 <footer class="site-footer">
   The Brief &nbsp;·&nbsp; Daily Market Intelligence<br>
   <a href="about.html">About</a> &nbsp;·&nbsp; <a href="archive.html">Archive</a> &nbsp;·&nbsp; <a href="subscribe.html">Subscribe</a> &nbsp;·&nbsp; <a href="terms.html">Terms</a><br>
-  Not investment advice &nbsp;·&nbsp; For educational purposes only
+  <small>Not investment advice &nbsp;·&nbsp; For educational purposes only</small>
 </footer>
 
 </body>

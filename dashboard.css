@@ -116,6 +116,7 @@ body.dash-page .site-footer a:hover { color: var(--text) !important; }
   border-color: var(--gold) !important;
 }
 .db-btn-primary:hover { background: #b8890f !important; border-color: #b8890f !important; }
+.db-btn:focus-visible { outline: 3px solid #fff !important; outline-offset: 3px !important; }
 .db-btn-outline {
   background: transparent !important;
   color: var(--text) !important;
@@ -460,7 +461,7 @@ body.dash-page .site-footer a:hover { color: var(--text) !important; }
   padding: 8px 14px;
   width: 200px;
   outline: none;
-  transition: border-color .15s;
+  transition: border-color .15s, box-shadow .15s;
 }
 .db-search-input::placeholder {
   text-transform: none;
@@ -468,7 +469,10 @@ body.dash-page .site-footer a:hover { color: var(--text) !important; }
   color: var(--muted-2);
   font-size: 11px;
 }
-.db-search-input:focus { border-color: rgba(212,160,23,.5); }
+.db-search-input:focus {
+  border-color: rgba(212,160,23,.7);
+  box-shadow: 0 0 0 3px rgba(212,160,23,.25);
+}
 .db-search-go {
   background: var(--gold);
   border: 1.5px solid var(--gold);
@@ -483,6 +487,7 @@ body.dash-page .site-footer a:hover { color: var(--text) !important; }
   transition: background .15s;
 }
 .db-search-go:hover { background: #b8890f; border-color: #b8890f; }
+.db-search-go:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 .db-search-body { padding: 20px; }
 .db-search-placeholder {
   padding: 48px 0;
@@ -524,6 +529,7 @@ body.dash-page .site-footer a:hover { color: var(--text) !important; }
 }
 .dq-range-btn:hover  { color: var(--text); }
 .dq-range-btn.active { background: rgba(255,255,255,.09); color: var(--text); border-color: rgba(255,255,255,.2); }
+.dq-range-btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .dq-chartbox {
   position: relative; height: 260px; margin-bottom: 16px;
   background: rgba(255,255,255,.015); border-radius: 8px; overflow: hidden;
@@ -561,3 +567,12 @@ body.dash-page .site-footer a:hover { color: var(--text) !important; }
 .db-cta h2 { font-size: clamp(20px,2.8vw,26px) !important; font-weight: 700; color: #fff !important; letter-spacing: -.015em; margin-bottom: 8px !important; }
 .db-cta p  { font-size: 13px; color: var(--muted); line-height: 1.65; margin-bottom: 20px !important; }
 .db-cta-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* ── Reduce motion (WCAG 2.3.3) ─────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  body.dash-page *, body.dash-page *::before, body.dash-page *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
