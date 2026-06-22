@@ -301,7 +301,7 @@ def now_et() -> datetime:
     return datetime.now(ET)
 
 
-def determine_update_type() -> str | None:
+def determine_update_type():
     """
     Check the current America/New_York time and return the appropriate
     update type, or None if no update is scheduled right now.
@@ -445,18 +445,52 @@ def save_raw(raw: str) -> None:
 
 
 def extract_json(raw: str) -> dict:
-    try:
-        return json.loads(raw.strip())
-    except json.JSONDecodeError:
-        pass
+    """
+    Robustly extract the first valid JSON object from a Claude response.
 
+    Claude sometimes prepends prose ("Based on my research…") before the JSON
+    even when told not to. We try four strategies in order and log each attempt.
+
+    Strategy 1 — whole string is valid JSON.
+    Strategy 2 — strip a single markdown code fence, then try.
+    Strategy 3 — slice from the FIRST '{' to the LAST '}' (handles trailing prose).
+    Strategy 4 — walk character-by-character to find the first balanced '{…}'.
+    """
+    print(f"[parser] Response preview (first 500 chars): {raw[:500]!r}")
+
+    # ── Strategy 1: whole string ──────────────────────────────────────────────
+    try:
+        result = json.loads(raw.strip())
+        print("[parser] Strategy 1 (raw): SUCCESS")
+        return result
+    except json.JSONDecodeError:
+        print("[parser] Strategy 1 (raw): failed")
+
+    # ── Strategy 2: strip markdown fences ────────────────────────────────────
     stripped = re.sub(r"^```(?:json)?\s*\n?", "", raw.strip())
     stripped = re.sub(r"\n?```\s*$", "", stripped)
     try:
-        return json.loads(stripped.strip())
+        result = json.loads(stripped.strip())
+        print("[parser] Strategy 2 (strip fences): SUCCESS")
+        return result
     except json.JSONDecodeError:
-        pass
+        print("[parser] Strategy 2 (strip fences): failed")
 
+    # ── Strategy 3: first '{' to last '}' ────────────────────────────────────
+    # Handles prose prepended OR appended to the JSON blob.
+    first_brace = raw.find("{")
+    last_brace  = raw.rfind("}")
+    if first_brace != -1 and last_brace > first_brace:
+        candidate = raw[first_brace:last_brace + 1]
+        try:
+            result = json.loads(candidate)
+            print("[parser] Strategy 3 (first-to-last brace): SUCCESS")
+            return result
+        except json.JSONDecodeError:
+            print("[parser] Strategy 3 (first-to-last brace): failed")
+
+    # ── Strategy 4: balanced bracket walk ────────────────────────────────────
+    # Handles cases where there is valid JSON followed by more JSON/text.
     match = re.search(r"\{", raw)
     if match:
         start = match.start()
@@ -477,14 +511,53 @@ def extract_json(raw: str) -> dict:
                     depth -= 1
                     if depth == 0:
                         try:
-                            return json.loads(raw[start:i + 1])
+                            result = json.loads(raw[start:i + 1])
+                            print("[parser] Strategy 4 (bracket walk): SUCCESS")
+                            return result
                         except json.JSONDecodeError:
                             break
+        print("[parser] Strategy 4 (bracket walk): failed")
 
+    # ── All strategies failed ─────────────────────────────────────────────────
     save_raw(raw)
-    print("ERROR: Could not parse JSON from Claude response.")
-    print("       First 500 chars:", raw[:500])
+    print("ERROR: Could not parse JSON from Claude response after 4 strategies.")
+    print(f"       Response length: {len(raw)} chars")
+    print(f"       First 500 chars: {raw[:500]}")
     sys.exit(1)
+
+
+def _test_parser() -> None:
+    """Quick local smoke-test — run with: python scripts/generate_brief.py --test-parser"""
+    cases = [
+        # Case 1: clean JSON
+        ('{"publish": true, "a": 1}', True),
+        # Case 2: prose before JSON
+        ('I now have sufficient data. Here is the result:\n{"publish": true, "a": 2}', True),
+        # Case 3: prose after JSON
+        ('{"publish": true, "a": 3}\n\nPlease let me know if you need anything else.', True),
+        # Case 4: markdown fences
+        ('```json\n{"publish": true, "a": 4}\n```', True),
+        # Case 5: prose both sides
+        ('Based on my research...\n{"publish": false}\nHope that helps!', True),
+        # Case 6: no JSON at all
+        ('This is just prose, no JSON here.', False),
+    ]
+    all_passed = True
+    for i, (text, should_succeed) in enumerate(cases, 1):
+        try:
+            result = extract_json(text)
+            if should_succeed:
+                print(f"  Case {i}: PASS — parsed key 'publish'={result.get('publish')}")
+            else:
+                print(f"  Case {i}: FAIL — expected failure but got: {result}")
+                all_passed = False
+        except SystemExit:
+            if not should_succeed:
+                print(f"  Case {i}: PASS — correctly rejected non-JSON input")
+            else:
+                print(f"  Case {i}: FAIL — unexpected parse failure")
+                all_passed = False
+    print("All parser tests passed." if all_passed else "Some parser tests FAILED.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -669,12 +742,16 @@ def generate_close(today_iso: str, date_display: str) -> dict:
 
     user_message = (
         f"Today is {today_fmt}. "
-        "Use your web_search tool first to retrieve today's real market data and news. "
+        "Use your web_search tool to retrieve today's real market data and news. "
         "Search for: S&P 500 close, Nasdaq close, Dow close, VIX, 10-year Treasury yield, "
         "WTI crude, top movers, major earnings, Fed news, and the 2-3 biggest market stories today. "
         "Also search for a suitable editorial image. "
         "Then produce a complete close-of-day issue of The Brief. "
-        "Return ONLY the JSON object. No markdown fences. No text before or after."
+        "CRITICAL OUTPUT RULE: Your response must be ONLY the JSON object. "
+        "Start your response with { and end with }. "
+        "No prose before the JSON. No explanation after the JSON. "
+        "No markdown. No ```json fences. No commentary. "
+        "If data is unavailable use null, not explanatory text."
     )
 
     raw  = call_api(system_prompt, user_message, max_tokens=16000)
@@ -838,7 +915,13 @@ RULES:
 - Always include: "For informational and educational purposes only. Not investment advice."
 - Use wording like "latest available market data" and "market data may be delayed."
 
-Return ONLY a valid JSON object with exactly these fields — no markdown fences, no extra text:
+OUTPUT FORMAT — STRICTLY ENFORCED:
+Your ENTIRE response must be one valid JSON object. Begin with {{ and end with }}.
+No prose before the JSON. No explanation after the JSON.
+No markdown. No ```json fences. No "Here is the JSON:" prefix.
+If a value is unavailable, use null — never a placeholder string.
+
+Return ONLY this JSON object:
 {{
   "date_iso": "{today_iso}",
   "date_display": "{date_display}",
@@ -861,7 +944,10 @@ Return ONLY a valid JSON object with exactly these fields — no markdown fences
     user_message = (
         f"Today is {today_fmt}. Current time: {time_fmt}. "
         "Search for current market data and the biggest stories. "
-        "Return ONLY the JSON object."
+        "CRITICAL OUTPUT RULE: Respond with ONLY the JSON object. "
+        "Your response must begin with { and end with }. "
+        "No prose, no explanation, no markdown, no ```json fences. "
+        "If a value is unavailable, use null — not a string like 'unavailable'."
     )
 
     raw  = call_api(system_prompt, user_message, max_tokens=6000)
@@ -877,7 +963,7 @@ Return ONLY a valid JSON object with exactly these fields — no markdown fences
     return data
 
 
-def generate_afterhours(today_iso: str, date_display: str) -> dict | None:
+def generate_afterhours(today_iso: str, date_display: str):
     """
     Conditional after-hours check. Runs at 6:30 PM ET but only publishes if there
     is genuinely meaningful after-hours market-moving news. Returns None to skip.
@@ -941,13 +1027,19 @@ If meaningful news exists, return ONLY a valid JSON object:
   "homepage_teaser": "One sentence teaser for the homepage."
 }}
 
-No markdown fences. No extra text. JSON only."""
+OUTPUT FORMAT — STRICTLY ENFORCED:
+Your ENTIRE response must be one valid JSON object. Begin with {{ and end with }}.
+No prose before the JSON. No explanation after the JSON. No markdown. No ```json fences.
+If nothing meets the publish criteria, return exactly: {{"publish": false}}"""
 
     user_message = (
         f"Today is {today_fmt}. Current time: {time_fmt}. "
         "Check for meaningful after-hours earnings and market news right now. "
         "Apply the publish criteria strictly. "
-        "Return ONLY the JSON object."
+        "CRITICAL OUTPUT RULE: Respond with ONLY the JSON object. "
+        "Your response must begin with { and end with }. "
+        "No prose, no explanation, no markdown, no ```json fences. "
+        "If nothing qualifies, return exactly: {\"publish\": false}"
     )
 
     raw  = call_api(system_prompt, user_message, max_tokens=4000)
@@ -1048,7 +1140,7 @@ def build_breaking_page(data: dict) -> str:
 </html>"""
 
 
-def generate_breaking(today_iso: str, date_display: str) -> dict | None:
+def generate_breaking(today_iso: str, date_display: str):
     et_now    = now_et()
     today_fmt = et_now.strftime("%A, %B %-d, %Y")
     time_fmt  = et_now.strftime("%-I:%M %p ET")
@@ -1092,7 +1184,10 @@ If breaking news exists, return:
     user_message = (
         f"Today is {today_fmt}. Current time: {time_fmt}. "
         "Search for any genuinely major breaking market news right now. "
-        "Return ONLY the JSON. No markdown fences."
+        "CRITICAL OUTPUT RULE: Respond with ONLY the JSON object. "
+        "Your response must begin with { and end with }. "
+        "No prose, no explanation, no markdown, no ```json fences. "
+        "If nothing qualifies, return exactly: {\"publish\": false}"
     )
 
     raw  = call_api(system_prompt, user_message, max_tokens=3000)
@@ -1301,12 +1396,23 @@ def update_sitemap(url: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="The Brief — market update generator")
     parser.add_argument(
+        "--test-parser",
+        action="store_true",
+        help="Run JSON parser smoke-tests and exit.",
+    )
+    parser.add_argument(
         "--type",
         choices=UPDATE_TYPES,
         default="auto",
         help="Update type to generate (default: auto)",
     )
     args = parser.parse_args()
+
+    if args.test_parser:
+        print("=== JSON Parser Smoke Tests ===")
+        _test_parser()
+        sys.exit(0)
+
     update_type = args.type
 
     et_now = now_et()
