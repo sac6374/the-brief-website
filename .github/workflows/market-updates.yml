@@ -1,34 +1,31 @@
 name: Market Updates
 
-# Schedule targets Eastern Daylight Time (EDT = UTC-4, used March–November).
-# Four cron entries — one per target ET time.
-# The Python script verifies America/New_York time internally and exits cleanly
-# if the run lands outside its allowed window (e.g. GitHub delay, DST edge).
+# Four cron triggers — one per daily ET target (EDT = UTC-4).
+# IMPORTANT: Each cron maps directly to an update type in the workflow.
+# The Python script is called with an explicit --type, NOT --type auto.
+# This means GitHub Actions delays (sometimes hours) do NOT cause the
+# run to silently exit — the right update type always publishes.
 #
-#   08:00 ET = 12:00 UTC (EDT)
-#   12:00 ET = 16:00 UTC (EDT)
-#   16:15 ET = 20:15 UTC (EDT)
-#   18:30 ET = 22:30 UTC (EDT)
-#
-# EST (UTC-5) runs Nov–Mar. During that period the cron fires an hour earlier
-# ET, which still falls within the ±45-min auto-mode windows in the script.
+#   0 12 * * 1-5  → morning    (08:00 EDT)
+#   0 16 * * 1-5  → midday     (12:00 EDT)
+#   15 20 * * 1-5 → close      (16:15 EDT)
+#   30 22 * * 1-5 → afterhours (18:30 EDT)
 
 on:
   schedule:
-    - cron: "0 12 * * 1-5"    # 08:00 EDT / 07:00 EST
-    - cron: "0 16 * * 1-5"    # 12:00 EDT / 11:00 EST
-    - cron: "15 20 * * 1-5"   # 16:15 EDT / 15:15 EST
-    - cron: "30 22 * * 1-5"   # 18:30 EDT / 17:30 EST
+    - cron: "0 12 * * 1-5"    # morning
+    - cron: "0 16 * * 1-5"    # midday
+    - cron: "15 20 * * 1-5"   # close
+    - cron: "30 22 * * 1-5"   # afterhours
 
   workflow_dispatch:
     inputs:
       update_type:
         description: "Update type to generate"
         required: true
-        default: "auto"
+        default: "morning"
         type: choice
         options:
-          - auto
           - morning
           - midday
           - close
@@ -55,16 +52,27 @@ jobs:
       - name: Install dependencies
         run: pip install -r scripts/requirements.txt
 
-      - name: Determine update type
+      - name: Determine update type from cron or dispatch
         id: update_type
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "type=${{ inputs.update_type }}" >> $GITHUB_OUTPUT
-            echo "trigger=manual" >> $GITHUB_OUTPUT
+            TYPE="${{ inputs.update_type }}"
+            TRIGGER="manual"
           else
-            echo "type=auto" >> $GITHUB_OUTPUT
-            echo "trigger=scheduled" >> $GITHUB_OUTPUT
+            # Map each cron expression directly to its intended update type.
+            # This avoids silent failures caused by GitHub Actions running late.
+            case "${{ github.event.schedule }}" in
+              "0 12 * * 1-5")  TYPE="morning" ;;
+              "0 16 * * 1-5")  TYPE="midday" ;;
+              "15 20 * * 1-5") TYPE="close" ;;
+              "30 22 * * 1-5") TYPE="afterhours" ;;
+              *)               TYPE="morning" ;;  # fallback
+            esac
+            TRIGGER="scheduled"
           fi
+          echo "type=$TYPE" >> $GITHUB_OUTPUT
+          echo "trigger=$TRIGGER" >> $GITHUB_OUTPUT
+          echo "Resolved: type=$TYPE trigger=$TRIGGER schedule=${{ github.event.schedule }}"
 
       - name: Generate market update
         env:
@@ -72,6 +80,7 @@ jobs:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_TRIGGER: ${{ steps.update_type.outputs.trigger }}
         run: |
+          echo "Running: python scripts/generate_brief.py --type ${{ steps.update_type.outputs.type }}"
           python scripts/generate_brief.py --type ${{ steps.update_type.outputs.type }}
 
       - name: Check for changed files
@@ -90,10 +99,9 @@ jobs:
       - name: Commit and push
         if: steps.check_changes.outputs.changed == 'true'
         run: |
-          UPDATE_TYPE="${{ steps.update_type.outputs.type }}"
+          TYPE="${{ steps.update_type.outputs.type }}"
           DATE=$(TZ=America/New_York date +'%Y-%m-%d')
-
-          case "$UPDATE_TYPE" in
+          case "$TYPE" in
             morning)    MSG="Generate morning market brief ${DATE}" ;;
             midday)     MSG="Generate midday market update ${DATE}" ;;
             close)      MSG="Generate market close recap ${DATE}" ;;
@@ -101,7 +109,6 @@ jobs:
             breaking)   MSG="Generate breaking market update ${DATE}" ;;
             *)          MSG="Generate market update ${DATE}" ;;
           esac
-
           git config user.name "The Brief Bot"
           git config user.email "brief-bot@users.noreply.github.com"
           git commit -m "$MSG"
