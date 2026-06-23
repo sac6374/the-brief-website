@@ -43,8 +43,9 @@ except ImportError:
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 ROOT               = Path(__file__).parent.parent
-BRIEFS_DIR         = ROOT / "briefs"
-BREAKING_DIR       = ROOT / "breaking"
+BRIEFS_DIR         = ROOT / "briefs"    # full daily briefs: briefs/YYYY-MM-DD.html
+UPDATES_DIR        = ROOT / "updates"   # market updates:    updates/YYYY-MM-DD-{type}.html
+BREAKING_DIR       = ROOT / "breaking"  # breaking alerts:   breaking/YYYY-MM-DD-HHMM-slug.html
 INDEX_HTML         = ROOT / "index.html"
 ARCHIVE_HTML       = ROOT / "archive.html"
 SITEMAP_XML        = ROOT / "sitemap.xml"
@@ -671,7 +672,7 @@ def build_close_page(data: dict) -> str:
     article_html = data["article_html"]
     snapshot     = data["market_snapshot"]
 
-    site_url = f"https://readmarketbrief.com/briefs/{date_iso}-close.html"
+    site_url = f"https://readmarketbrief.com/briefs/{date_iso}.html"
     share_raw = data["share_text"].replace("{{URL}}", site_url)
     share_encoded = re.sub(r"\s+", "+", share_raw.strip())
 
@@ -824,7 +825,7 @@ def build_update_page(data: dict, update_type: str) -> str:
                 '</div>\n'
             )
 
-    close_link = f'briefs/{date_iso}-close.html'
+    close_link = f'briefs/{date_iso}.html'
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -1216,7 +1217,7 @@ If breaking news exists, return:
 
 def save_linkedin(data: dict, date_iso: str) -> None:
     LINKEDIN_DIR.mkdir(exist_ok=True)
-    site_url = f"https://readmarketbrief.com/briefs/{date_iso}-close.html"
+    site_url = f"https://readmarketbrief.com/briefs/{date_iso}.html"
     copy = data.get("linkedin_post", "").replace("{{URL}}", site_url)
     if copy.strip():
         out = LINKEDIN_DIR / f"{date_iso}.txt"
@@ -1229,13 +1230,15 @@ def update_index_full_brief(data: dict, date_iso: str) -> bool:
     Update the MAIN brief card (LATEST_BRIEF_START/END) and the hero button.
     Called ONLY for close (full daily brief). Never called for morning/midday/afterhours.
 
+    Full daily briefs live at: briefs/YYYY-MM-DD.html (no type suffix)
+
     Updates:
-    - Hero 'Read Today's Brief' button → close brief
-    - 'Read Full Issue' button → close brief
+    - Hero 'Read Today's Brief' button → full brief
+    - 'Read Full Issue' button → full brief
     - Latest Issue card headline/teaser/snapshot
     """
     content = INDEX_HTML.read_text(encoding="utf-8")
-    brief_path = f"briefs/{date_iso}-close.html"
+    brief_path = f"briefs/{date_iso}.html"
 
     tags = data.get("tags", ["Rates", "Equities", "Wealth Management"])
     tag_html = "".join(f'<span class="tag">{t}</span>' for t in tags[:3])
@@ -1310,7 +1313,8 @@ def update_index_market_update(data: dict, date_iso: str, update_type: str) -> b
     Those always point to the latest full close brief.
     """
     content = INDEX_HTML.read_text(encoding="utf-8")
-    update_path = f"briefs/{date_iso}-{update_type}.html"
+    # Market updates live in updates/ directory, never in briefs/
+    update_path = f"updates/{date_iso}-{update_type}.html"
 
     label_map = {
         "morning":    "Morning Market Setup",
@@ -1574,10 +1578,12 @@ def main() -> None:
     sitemap_changed = False
     written_file    = None
 
-    # ── Close — generates FULL daily brief; updates main homepage card + hero ──
+    UPDATES_DIR.mkdir(exist_ok=True)
+
+    # ── Close — FULL DAILY BRIEF → briefs/YYYY-MM-DD.html ────────────────────
     if update_type == "close":
         data = generate_close(today_iso, date_display)
-        filename = f"{today_iso}-close.html"
+        filename = f"{today_iso}.html"            # briefs/YYYY-MM-DD.html — no type suffix
         out_path = BRIEFS_DIR / filename
         if out_path.exists():
             print(f"[close] WARNING: {out_path.name} already exists — overwriting.")
@@ -1585,16 +1591,17 @@ def main() -> None:
         written_file = out_path
         print(f"[close] Written: {out_path}")
         save_linkedin(data, today_iso)
-        # Close ONLY updates the main brief card + hero button
+        # Close updates the main brief card + hero — the ONLY type that does this
         index_changed   = update_index_full_brief(data, today_iso)
         archive_changed = _update_archive_tracked(data, today_iso, "close", f"briefs/{filename}")
         sitemap_changed = _update_sitemap_tracked(f"https://readmarketbrief.com/briefs/{filename}")
+        print(f"FULL BRIEF LINK: briefs/{filename}")
 
-    # ── Morning / Midday — short update; updates ONLY the market update card ──
+    # ── Morning / Midday — SHORT UPDATE → updates/YYYY-MM-DD-{type}.html ─────
     elif update_type in ("morning", "midday"):
         data = generate_scheduled_update(update_type, today_iso, date_display)
         filename = f"{today_iso}-{update_type}.html"
-        out_path = BRIEFS_DIR / filename
+        out_path = UPDATES_DIR / filename          # goes to updates/, NOT briefs/
         if out_path.exists():
             print(f"[{update_type}] WARNING: {out_path.name} already exists — overwriting.")
         out_path.write_text(build_update_page(data, update_type), encoding="utf-8")
@@ -1602,26 +1609,28 @@ def main() -> None:
         print(f"[{update_type}] Written: {out_path}")
         # Morning/midday NEVER touch the main brief card or hero button
         index_changed   = update_index_market_update(data, today_iso, update_type)
-        archive_changed = _update_archive_tracked(data, today_iso, update_type, f"briefs/{filename}")
-        sitemap_changed = _update_sitemap_tracked(f"https://readmarketbrief.com/briefs/{filename}")
+        archive_changed = _update_archive_tracked(data, today_iso, update_type, f"updates/{filename}")
+        sitemap_changed = _update_sitemap_tracked(f"https://readmarketbrief.com/updates/{filename}")
+        print(f"MARKET UPDATE LINK: updates/{filename}")
 
-    # ── Afterhours — conditional short update; never replaces main brief ───────
+    # ── Afterhours — CONDITIONAL SHORT UPDATE → updates/YYYY-MM-DD-afterhours.html
     elif update_type == "afterhours":
         data = generate_afterhours(today_iso, date_display)
         if data is None:
             print("[afterhours] No meaningful news — no files changed. Exiting cleanly.")
             sys.exit(0)
         filename = f"{today_iso}-afterhours.html"
-        out_path = BRIEFS_DIR / filename
+        out_path = UPDATES_DIR / filename          # goes to updates/, NOT briefs/
         if out_path.exists():
             print(f"[afterhours] WARNING: {out_path.name} already exists — overwriting.")
         out_path.write_text(build_update_page(data, "afterhours"), encoding="utf-8")
         written_file = out_path
         print(f"[afterhours] Written: {out_path}")
-        # Afterhours shows as a market update card, never replaces main brief
+        # Afterhours shows as market update card — never replaces main brief
         index_changed   = update_index_market_update(data, today_iso, "afterhours")
-        archive_changed = _update_archive_tracked(data, today_iso, "afterhours", f"briefs/{filename}")
-        sitemap_changed = _update_sitemap_tracked(f"https://readmarketbrief.com/briefs/{filename}")
+        archive_changed = _update_archive_tracked(data, today_iso, "afterhours", f"updates/{filename}")
+        sitemap_changed = _update_sitemap_tracked(f"https://readmarketbrief.com/updates/{filename}")
+        print(f"MARKET UPDATE LINK: updates/{filename}")
 
     # ── Breaking ──────────────────────────────────────────────────────────────
     elif update_type == "breaking":
@@ -1653,6 +1662,12 @@ def main() -> None:
     print(f"  archive.html:      {'updated' if archive_changed else 'unchanged'}")
     print(f"  sitemap.xml:       {'updated' if sitemap_changed else 'unchanged'}")
     print(f"  Commit needed:     {'yes' if any([written_file, index_changed, archive_changed, sitemap_changed]) else 'no'}")
+    # Log the current homepage state
+    idx = INDEX_HTML.read_text(encoding="utf-8")
+    brief_m  = re.search(r'<!-- LATEST_BRIEF_START -->.*?href="([^"]+)".*?<!-- LATEST_BRIEF_END -->', idx, re.DOTALL)
+    update_m = re.search(r'<!-- LATEST_UPDATE_START -->.*?href="([^"]+)".*?<!-- LATEST_UPDATE_END -->', idx, re.DOTALL)
+    print(f"  Homepage full brief:   {brief_m.group(1) if brief_m else 'not set'}")
+    print(f"  Homepage market upd:   {update_m.group(1) if update_m else 'none'}")
     print("=" * 60)
 
 
