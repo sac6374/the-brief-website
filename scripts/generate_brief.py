@@ -306,23 +306,26 @@ def determine_update_type():
     Check the current America/New_York time and return the appropriate
     update type, or None if no update is scheduled right now.
 
+    Windows are wide enough to absorb GitHub Actions scheduling delays
+    and EST/EDT cron offset (the same 4 EDT crons fire ~1 hr early in EST,
+    still within each window).
+
     Windows (ET):
-        morning:    07:30 – 09:00
-        midday:     11:30 – 13:00
-        close:      15:45 – 17:15
-        afterhours: 18:00 – 19:30
+        morning:    07:45 – 08:45  (target 08:00)
+        midday:     11:45 – 12:45  (target 12:00)
+        close:      16:05 – 16:45  (target 16:15)
+        afterhours: 18:15 – 19:15  (target 18:30)
     """
     et = now_et()
-    h, m = et.hour, et.minute
-    total = h * 60 + m  # minutes since midnight ET
+    total = et.hour * 60 + et.minute  # minutes since midnight ET
 
-    if 7 * 60 + 30 <= total < 9 * 60:
+    if 7 * 60 + 45 <= total < 8 * 60 + 45:
         return "morning"
-    if 11 * 60 + 30 <= total < 13 * 60:
+    if 11 * 60 + 45 <= total < 12 * 60 + 45:
         return "midday"
-    if 15 * 60 + 45 <= total < 17 * 60 + 15:
+    if 16 * 60 + 5 <= total < 16 * 60 + 45:
         return "close"
-    if 18 * 60 <= total < 19 * 60 + 30:
+    if 18 * 60 + 15 <= total < 19 * 60 + 15:
         return "afterhours"
     return None
 
@@ -1285,18 +1288,114 @@ def update_index_close(data: dict, date_iso: str) -> None:
         print("index.html updated (close).")
 
 
-def update_index_morning(data: dict, date_iso: str) -> None:
-    """Update homepage hero link to the morning brief."""
+def update_index_homepage(data: dict, date_iso: str, update_type: str) -> bool:
+    """
+    Update index.html with the best available brief for today.
+
+    Priority (highest wins):
+        1. today close
+        2. today midday
+        3. today morning
+        4. most recent brief from a previous day
+
+    Updates both the hero 'Read Today's Brief' button AND the
+    latest-card block between LATEST_BRIEF_START / LATEST_BRIEF_END.
+
+    Labels the card 'Today's Brief' if it's from today, else 'Most Recent Brief'.
+
+    Returns True if index.html was changed, False otherwise.
+    """
     content = INDEX_HTML.read_text(encoding="utf-8")
-    brief_path = f"briefs/{date_iso}-morning.html"
-    updated = re.sub(
-        r'href="briefs/[\d\-]+(?:-\w+)?\.html"(\s+class="btn btn-outline-white">Read Today\'s Brief)',
-        f'href="{brief_path}"\\1',
-        content,
+
+    # ── Determine the best file to surface ───────────────────────────────────
+    brief_path = f"briefs/{date_iso}-{update_type}.html"
+    is_today   = True
+
+    # If the current update is lower priority than something already written
+    # today, don't downgrade the homepage.
+    priority = {"close": 3, "midday": 2, "morning": 1, "afterhours": 0}
+    current_priority = priority.get(update_type, 0)
+
+    for higher_type, _ in sorted(priority.items(), key=lambda x: -x[1]):
+        if higher_type == update_type:
+            break
+        candidate = BRIEFS_DIR / f"{date_iso}-{higher_type}.html"
+        if candidate.exists():
+            print(f"[index] Higher-priority file exists today: {candidate.name} — keeping it on homepage.")
+            return False  # don't downgrade
+
+    # ── Build label ───────────────────────────────────────────────────────────
+    type_label_map = {
+        "morning": "Today's Brief",
+        "midday":  "Today's Brief",
+        "close":   "Today's Brief",
+    }
+    card_label = type_label_map.get(update_type, "Latest Update") if is_today else "Most Recent Brief"
+
+    # ── Build mini snapshot (first 3 items) ───────────────────────────────────
+    snap = data.get("market_snapshot", [])[:3]
+    mini_rows = ""
+    for item in snap:
+        direction = item.get("direction", "flat")
+        arrow = "▲" if direction == "up" else ("▼" if direction == "down" else "—")
+        mini_rows += (
+            f'        <div class="mini-cell">'
+            f'<div class="mini-label">{item["label"]}</div>'
+            f'<div class="mini-value">{item["value"]}</div>'
+            f'<div class="mini-change {direction}">{arrow} {item["change"]}</div>'
+            f'</div>\n'
+        )
+    mini_html = f'      <div class="mini-snapshot">\n{mini_rows}      </div>\n' if mini_rows else ""
+
+    tags = data.get("tags", [])
+    tag_html = "".join(f'<span class="tag">{t}</span>' for t in tags[:3]) if tags else ""
+    tag_row  = f'        <div class="tag-row">{tag_html}</div>\n' if tag_html else ""
+
+    headline = data.get("headline", "")
+    teaser   = data.get("homepage_teaser", data.get("summary", ""))
+
+    # ── Replace LATEST_BRIEF card block ───────────────────────────────────────
+    new_block = (
+        "    <!-- LATEST_BRIEF_START -->\n"
+        "    <div class=\"latest-card\">\n"
+        "      <div class=\"latest-card-header\">\n"
+        f"        <span class=\"latest-label\">{card_label}</span>\n"
+        f"        <span class=\"latest-date\">{data.get('date_display', date_iso)}</span>\n"
+        "      </div>\n"
+        "      <div class=\"latest-card-body\">\n"
+        f"        <div class=\"latest-title\">{headline}</div>\n"
+        f"        <p class=\"latest-teaser\">{teaser}</p>\n"
+        f"{tag_row}"
+        "      </div>\n"
+        f"{mini_html}"
+        "      <div class=\"latest-card-footer\">\n"
+        f"        <a href=\"{brief_path}\" class=\"btn btn-dark\">Read Full Issue &rarr;</a>\n"
+        "      </div>\n"
+        "    </div>\n"
+        "    <!-- LATEST_BRIEF_END -->"
     )
-    if updated != content:
-        INDEX_HTML.write_text(updated, encoding="utf-8")
-        print("index.html hero updated (morning).")
+
+    updated = re.sub(
+        r"<!-- LATEST_BRIEF_START -->.*?<!-- LATEST_BRIEF_END -->",
+        lambda _: new_block,
+        content,
+        flags=re.DOTALL,
+    )
+
+    # ── Also update hero 'Read Today's Brief' button ─────────────────────────
+    updated = re.sub(
+        r'href="briefs/[^"]+\.html"(\s+class="btn btn-outline-white">Read Today\'s Brief)',
+        f'href="{brief_path}"\\1',
+        updated,
+    )
+
+    if updated == content:
+        print("[index] WARNING: LATEST_BRIEF markers not found in index.html — no change.")
+        return False
+
+    INDEX_HTML.write_text(updated, encoding="utf-8")
+    print(f"[index] Homepage updated to: {brief_path}")
+    return True
 
 
 def update_index_breaking(data: dict, date_iso: str, filename: str) -> None:
@@ -1332,7 +1431,9 @@ def update_index_breaking(data: dict, date_iso: str, filename: str) -> None:
 
     if updated != content:
         INDEX_HTML.write_text(updated, encoding="utf-8")
-        print("index.html updated (breaking banner).")
+        print("[index] Breaking banner added/updated.")
+        return True
+    return False
 
 
 def update_archive(data: dict, date_iso: str, update_type: str, url_path: str) -> None:
@@ -1394,45 +1495,71 @@ def update_sitemap(url: str) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="The Brief — market update generator")
-    parser.add_argument(
+    arg_parser = argparse.ArgumentParser(description="The Brief — market update generator")
+    arg_parser.add_argument(
         "--test-parser",
         action="store_true",
         help="Run JSON parser smoke-tests and exit.",
     )
-    parser.add_argument(
+    arg_parser.add_argument(
         "--type",
         choices=UPDATE_TYPES,
         default="auto",
         help="Update type to generate (default: auto)",
     )
-    args = parser.parse_args()
+    args = arg_parser.parse_args()
 
     if args.test_parser:
         print("=== JSON Parser Smoke Tests ===")
         _test_parser()
         sys.exit(0)
 
-    update_type = args.type
-
-    et_now = now_et()
+    # ── Runtime context ───────────────────────────────────────────────────────
+    utc_now  = datetime.now(pytz.utc)
+    et_now   = now_et()
     today_iso    = et_now.strftime("%Y-%m-%d")
     date_display = et_now.strftime("%A, %B %-d, %Y")
 
-    print(f"=== The Brief — {update_type.upper()} Generator ===")
-    print(f"Eastern Time: {et_now.strftime('%Y-%m-%d %H:%M %Z')}")
+    event_name = os.environ.get("GITHUB_EVENT_NAME", "unknown")
+    trigger    = os.environ.get("GITHUB_TRIGGER", "unknown")
+    is_manual  = (trigger == "manual" or args.type != "auto")
 
-    # Auto-detect update type from ET schedule
-    if update_type == "auto":
+    requested_type = args.type
+    update_type    = requested_type
+
+    # ── Structured log header ─────────────────────────────────────────────────
+    print("=" * 60)
+    print("=== The Brief — Market Update Generator ===")
+    print(f"  UTC time:          {utc_now.strftime('%Y-%m-%d %H:%M UTC')}")
+    print(f"  New York time:     {et_now.strftime('%Y-%m-%d %H:%M %Z')}")
+    print(f"  GitHub event:      {event_name}")
+    print(f"  Trigger:           {trigger} ({'manual' if is_manual else 'scheduled'})")
+    print(f"  Requested type:    {requested_type}")
+    print("=" * 60)
+
+    # ── Auto-mode: detect ET window (scheduled runs only) ────────────────────
+    if requested_type == "auto":
         detected = determine_update_type()
         if detected is None:
-            print(f"No update scheduled at {et_now.strftime('%H:%M ET')}. Exiting cleanly.")
+            et_time_str = et_now.strftime("%H:%M ET")
+            print(f"[auto] {et_time_str} is outside all update windows. Exiting cleanly.")
+            print(f"  Windows (ET): morning 07:45-08:45 | midday 11:45-12:45 | close 16:05-16:45 | afterhours 18:15-19:15")
             sys.exit(0)
         update_type = detected
-        print(f"Auto-detected update type: {update_type}")
+        print(f"[auto] Time window matched: {update_type}")
+    else:
+        print(f"[manual] Explicit type requested: {update_type} — skipping time-window check")
+
+    print(f"  Selected type:     {update_type}")
 
     BRIEFS_DIR.mkdir(exist_ok=True)
     BREAKING_DIR.mkdir(exist_ok=True)
+
+    # Track what changed for final summary
+    index_changed   = False
+    archive_changed = False
+    sitemap_changed = False
+    written_file    = None
 
     # ── Close (full daily brief) ──────────────────────────────────────────────
     if update_type == "close":
@@ -1440,53 +1567,51 @@ def main() -> None:
         filename = f"{today_iso}-close.html"
         out_path = BRIEFS_DIR / filename
         if out_path.exists():
-            print(f"WARNING: {out_path} already exists. Overwriting.")
+            print(f"[close] WARNING: {out_path.name} already exists — overwriting.")
         out_path.write_text(build_close_page(data), encoding="utf-8")
-        print(f"Written: {out_path}")
+        written_file = out_path
+        print(f"[close] Written: {out_path}")
         save_linkedin(data, today_iso)
-        update_index_close(data, today_iso)
-        update_archive(data, today_iso, "close", f"briefs/{filename}")
-        update_sitemap(f"https://readmarketbrief.com/briefs/{filename}")
+        index_changed   = update_index_homepage(data, today_iso, "close")
+        archive_changed = _update_archive_tracked(data, today_iso, "close", f"briefs/{filename}")
+        sitemap_changed = _update_sitemap_tracked(f"https://readmarketbrief.com/briefs/{filename}")
 
     # ── Morning / Midday — always publish ────────────────────────────────────
     elif update_type in ("morning", "midday"):
         data = generate_scheduled_update(update_type, today_iso, date_display)
-
         filename = f"{today_iso}-{update_type}.html"
         out_path = BRIEFS_DIR / filename
         if out_path.exists():
-            print(f"WARNING: {out_path} already exists. Overwriting.")
+            print(f"[{update_type}] WARNING: {out_path.name} already exists — overwriting.")
         out_path.write_text(build_update_page(data, update_type), encoding="utf-8")
-        print(f"Written: {out_path}")
-
-        if update_type == "morning":
-            update_index_morning(data, today_iso)
-
-        update_archive(data, today_iso, update_type, f"briefs/{filename}")
-        update_sitemap(f"https://readmarketbrief.com/briefs/{filename}")
+        written_file = out_path
+        print(f"[{update_type}] Written: {out_path}")
+        index_changed   = update_index_homepage(data, today_iso, update_type)
+        archive_changed = _update_archive_tracked(data, today_iso, update_type, f"briefs/{filename}")
+        sitemap_changed = _update_sitemap_tracked(f"https://readmarketbrief.com/briefs/{filename}")
 
     # ── Afterhours — conditional: only publish if meaningful news ─────────────
     elif update_type == "afterhours":
         data = generate_afterhours(today_iso, date_display)
         if data is None:
-            print("No after-hours post published. No files changed.")
-            sys.exit(0)  # Clean exit — workflow will not commit anything
-
+            print("[afterhours] No meaningful news — no files changed. Exiting cleanly.")
+            sys.exit(0)
         filename = f"{today_iso}-afterhours.html"
         out_path = BRIEFS_DIR / filename
         if out_path.exists():
-            print(f"WARNING: {out_path} already exists. Overwriting.")
+            print(f"[afterhours] WARNING: {out_path.name} already exists — overwriting.")
         out_path.write_text(build_update_page(data, "afterhours"), encoding="utf-8")
-        print(f"Written: {out_path}")
-
-        update_archive(data, today_iso, "afterhours", f"briefs/{filename}")
-        update_sitemap(f"https://readmarketbrief.com/briefs/{filename}")
+        written_file = out_path
+        print(f"[afterhours] Written: {out_path}")
+        archive_changed = _update_archive_tracked(data, today_iso, "afterhours", f"briefs/{filename}")
+        sitemap_changed = _update_sitemap_tracked(f"https://readmarketbrief.com/briefs/{filename}")
 
     # ── Breaking ──────────────────────────────────────────────────────────────
     elif update_type == "breaking":
         data = generate_breaking(today_iso, date_display)
         if data is None:
-            sys.exit(0)  # Clean exit — nothing breaking
+            print("[breaking] No qualifying news — exiting cleanly.")
+            sys.exit(0)
 
         file_time = et_now.strftime("%H%M")
         slug      = data.get("slug", "market-alert")
@@ -1495,13 +1620,39 @@ def main() -> None:
 
         out_path = BREAKING_DIR / filename
         out_path.write_text(build_breaking_page(data), encoding="utf-8")
-        print(f"Written: {out_path}")
+        written_file = out_path
+        print(f"[breaking] Written: {out_path}")
 
-        update_index_breaking(data, today_iso, filename)
-        update_archive(data, today_iso, "breaking", f"breaking/{filename}")
-        update_sitemap(f"https://readmarketbrief.com/breaking/{filename}")
+        index_changed   = update_index_breaking(data, today_iso, filename)
+        archive_changed = _update_archive_tracked(data, today_iso, "breaking", f"breaking/{filename}")
+        sitemap_changed = _update_sitemap_tracked(f"https://readmarketbrief.com/breaking/{filename}")
 
-    print(f"=== Done: {update_type} ===")
+    # ── Final summary ─────────────────────────────────────────────────────────
+    print("=" * 60)
+    print("=== Run complete ===")
+    print(f"  Update type:       {update_type}")
+    print(f"  Generated file:    {written_file or 'none'}")
+    print(f"  index.html:        {'updated' if index_changed else 'unchanged'}")
+    print(f"  archive.html:      {'updated' if archive_changed else 'unchanged'}")
+    print(f"  sitemap.xml:       {'updated' if sitemap_changed else 'unchanged'}")
+    print(f"  Commit needed:     {'yes' if any([written_file, index_changed, archive_changed, sitemap_changed]) else 'no'}")
+    print("=" * 60)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tracked wrappers for archive + sitemap (return bool for summary log)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _update_archive_tracked(data: dict, date_iso: str, update_type: str, url_path: str) -> bool:
+    before = ARCHIVE_HTML.read_text(encoding="utf-8")
+    update_archive(data, date_iso, update_type, url_path)
+    return ARCHIVE_HTML.read_text(encoding="utf-8") != before
+
+
+def _update_sitemap_tracked(url: str) -> bool:
+    before = SITEMAP_XML.read_text(encoding="utf-8")
+    update_sitemap(url)
+    return SITEMAP_XML.read_text(encoding="utf-8") != before
 
 
 if __name__ == "__main__":

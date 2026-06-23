@@ -1,31 +1,24 @@
 name: Market Updates
 
-# Eastern Time schedule explanation:
-# GitHub cron uses UTC. ET = UTC-5 (EST) in winter, UTC-4 (EDT) in summer.
-# We run BOTH the EST and EDT equivalents for each target ET time.
-# The Python script checks America/New_York time internally and exits cleanly
-# if the run doesn't fall within an intended update window.
+# Schedule targets Eastern Daylight Time (EDT = UTC-4, used March–November).
+# Four cron entries — one per target ET time.
+# The Python script verifies America/New_York time internally and exits cleanly
+# if the run lands outside its allowed window (e.g. GitHub delay, DST edge).
 #
-# Target ET times → UTC cron pairs:
-#   08:00 ET → 12:00 UTC (EDT) / 13:00 UTC (EST)
-#   12:00 ET → 16:00 UTC (EDT) / 17:00 UTC (EST)
-#   16:15 ET → 20:15 UTC (EDT) / 21:15 UTC (EST)
-#   18:30 ET → 22:30 UTC (EDT) / 23:30 UTC (EST)
+#   08:00 ET = 12:00 UTC (EDT)
+#   12:00 ET = 16:00 UTC (EDT)
+#   16:15 ET = 20:15 UTC (EDT)
+#   18:30 ET = 22:30 UTC (EDT)
+#
+# EST (UTC-5) runs Nov–Mar. During that period the cron fires an hour earlier
+# ET, which still falls within the ±45-min auto-mode windows in the script.
 
 on:
   schedule:
-    # 08:00 ET — Morning brief
-    - cron: "0 12 * * 1-5"   # 08:00 EDT
-    - cron: "0 13 * * 1-5"   # 08:00 EST
-    # 12:00 ET — Midday update
-    - cron: "0 16 * * 1-5"   # 12:00 EDT
-    - cron: "0 17 * * 1-5"   # 12:00 EST
-    # 16:15 ET — Market close recap
-    - cron: "15 20 * * 1-5"  # 16:15 EDT
-    - cron: "15 21 * * 1-5"  # 16:15 EST
-    # 18:30 ET — After-hours check
-    - cron: "30 22 * * 1-5"  # 18:30 EDT
-    - cron: "30 23 * * 1-5"  # 18:30 EST
+    - cron: "0 12 * * 1-5"    # 08:00 EDT / 07:00 EST
+    - cron: "0 16 * * 1-5"    # 12:00 EDT / 11:00 EST
+    - cron: "15 20 * * 1-5"   # 16:15 EDT / 15:15 EST
+    - cron: "30 22 * * 1-5"   # 18:30 EDT / 17:30 EST
 
   workflow_dispatch:
     inputs:
@@ -67,13 +60,17 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "type=${{ inputs.update_type }}" >> $GITHUB_OUTPUT
+            echo "trigger=manual" >> $GITHUB_OUTPUT
           else
             echo "type=auto" >> $GITHUB_OUTPUT
+            echo "trigger=scheduled" >> $GITHUB_OUTPUT
           fi
 
       - name: Generate market update
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_TRIGGER: ${{ steps.update_type.outputs.trigger }}
         run: |
           python scripts/generate_brief.py --type ${{ steps.update_type.outputs.type }}
 
@@ -94,7 +91,7 @@ jobs:
         if: steps.check_changes.outputs.changed == 'true'
         run: |
           UPDATE_TYPE="${{ steps.update_type.outputs.type }}"
-          DATE=$(date -u +"%Y-%m-%d")
+          DATE=$(TZ=America/New_York date +'%Y-%m-%d')
 
           case "$UPDATE_TYPE" in
             morning)    MSG="Generate morning market brief ${DATE}" ;;

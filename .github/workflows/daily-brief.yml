@@ -1,17 +1,21 @@
-name: Generate Daily Brief
+# DISABLED — replaced by market-updates.yml
+# This workflow's schedule has been removed to prevent conflicts.
+# Manual workflow_dispatch is kept for emergency use only.
+name: Generate Daily Brief (Legacy — Disabled)
 
 on:
-  schedule:
-    # 8:30 AM ET on weekdays (12:30 UTC, adjusted for ET = UTC-4 in summer / UTC-5 in winter)
-    # Using 13:00 UTC to safely cover both EST and EDT
-    - cron: "0 13 * * 1-5"
-  workflow_dispatch: # Also allows manual trigger from GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type LEGACY to confirm you mean to run the old generator"
+        required: true
 
 jobs:
   generate:
     runs-on: ubuntu-latest
+    if: ${{ inputs.confirm == 'LEGACY' }}
     permissions:
-      contents: write  # Required to commit and push generated files
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -25,24 +29,21 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install anthropic
+        run: pip install anthropic pytz
 
       - name: Generate today's brief
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: python scripts/generate_brief.py
-
-      - name: Check for new files
-        id: check_changes
-        run: |
-          git diff --quiet && git diff --staged --quiet || echo "changed=true" >> $GITHUB_OUTPUT
-          git status
+        run: python scripts/generate_brief.py --type close
 
       - name: Commit and push
-        if: steps.check_changes.outputs.changed == 'true'
         run: |
-          git config user.name "The Brief Bot"
-          git config user.email "brief-bot@users.noreply.github.com"
-          git add briefs/ index.html archive.html linkedin/
-          git commit -m "Brief: $(date +'%Y-%m-%d') auto-generated issue"
-          git push
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git config user.name "The Brief Bot"
+            git config user.email "brief-bot@users.noreply.github.com"
+            git commit -m "Generate market close recap $(date -u +'%Y-%m-%d') [legacy]"
+            git push
+          fi
