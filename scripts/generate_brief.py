@@ -1225,9 +1225,59 @@ def save_linkedin(data: dict, date_iso: str) -> None:
         print(f"LinkedIn copy saved: {out}")
 
 
+def find_latest_full_brief() -> str:
+    """
+    Scan briefs/ and return the path (relative to site root) of the most
+    recent full daily brief.
+
+    Full brief filename patterns (newest first):
+      briefs/YYYY-MM-DD.html          ← new format (preferred)
+      briefs/YYYY-MM-DD-close.html    ← legacy format still accepted
+
+    Excludes:
+      briefs/YYYY-MM-DD-morning.html
+      briefs/YYYY-MM-DD-midday.html
+      updates/*
+      breaking/*
+    """
+    import re as _re
+    candidates = []
+    for f in BRIEFS_DIR.glob("*.html"):
+        name = f.stem  # without .html
+        # Accept: YYYY-MM-DD or YYYY-MM-DD-close
+        if _re.fullmatch(r"\d{4}-\d{2}-\d{2}", name):
+            candidates.append((name, f"briefs/{f.name}"))
+        elif _re.fullmatch(r"\d{4}-\d{2}-\d{2}-close", name):
+            date_key = name[:10]
+            candidates.append((date_key, f"briefs/{f.name}"))
+    if not candidates:
+        return "briefs/2026-06-22-close.html"  # fallback to last known good
+    candidates.sort(key=lambda x: x[0], reverse=True)
+    return candidates[0][1]
+
+
+def update_dashboard_brief_link(brief_path: str) -> bool:
+    """Update all 'Read Today's Brief' links in dashboard.html to brief_path."""
+    dashboard = ROOT / "dashboard.html"
+    if not dashboard.exists():
+        return False
+    content = dashboard.read_text(encoding="utf-8")
+    updated = re.sub(
+        r'href="briefs/[^"]+\.html"(\s+class="db-btn db-btn-primary">Read Today\'s Brief)',
+        f'href="{brief_path}"\\1',
+        content,
+    )
+    if updated == content:
+        return False
+    dashboard.write_text(updated, encoding="utf-8")
+    print(f"[dashboard] Read Today's Brief → {brief_path}")
+    return True
+
+
 def update_index_full_brief(data: dict, date_iso: str) -> bool:
     """
-    Update the MAIN brief card (LATEST_BRIEF_START/END) and the hero button.
+    Update the MAIN brief card (LATEST_BRIEF_START/END), the hero button,
+    AND the dashboard 'Read Today's Brief' buttons.
     Called ONLY for close (full daily brief). Never called for morning/midday/afterhours.
 
     Full daily briefs live at: briefs/YYYY-MM-DD.html (no type suffix)
@@ -1235,6 +1285,7 @@ def update_index_full_brief(data: dict, date_iso: str) -> bool:
     Updates:
     - Hero 'Read Today's Brief' button → full brief
     - 'Read Full Issue' button → full brief
+    - dashboard.html 'Read Today's Brief' buttons → full brief
     - Latest Issue card headline/teaser/snapshot
     """
     content = INDEX_HTML.read_text(encoding="utf-8")
@@ -1301,6 +1352,8 @@ def update_index_full_brief(data: dict, date_iso: str) -> bool:
 
     INDEX_HTML.write_text(updated, encoding="utf-8")
     print(f"[index] Full brief card updated → {brief_path}")
+    # Also update dashboard.html
+    update_dashboard_brief_link(brief_path)
     return True
 
 
@@ -1654,20 +1707,38 @@ def main() -> None:
         sitemap_changed = _update_sitemap_tracked(f"https://readmarketbrief.com/breaking/{filename}")
 
     # ── Final summary ─────────────────────────────────────────────────────────
+    latest_full   = find_latest_full_brief()
+    latest_update = f"updates/{today_iso}-{update_type}.html" if update_type in ("morning","midday","afterhours") and written_file else None
+
     print("=" * 60)
     print("=== Run complete ===")
-    print(f"  Update type:       {update_type}")
-    print(f"  Generated file:    {written_file or 'none'}")
-    print(f"  index.html:        {'updated' if index_changed else 'unchanged'}")
-    print(f"  archive.html:      {'updated' if archive_changed else 'unchanged'}")
-    print(f"  sitemap.xml:       {'updated' if sitemap_changed else 'unchanged'}")
-    print(f"  Commit needed:     {'yes' if any([written_file, index_changed, archive_changed, sitemap_changed]) else 'no'}")
-    # Log the current homepage state
+    print(f"  UTC time:              {utc_now.strftime('%Y-%m-%d %H:%M UTC')}")
+    print(f"  New York time:         {et_now.strftime('%Y-%m-%d %H:%M %Z')}")
+    print(f"  Event:                 {event_name} ({'manual' if is_manual else 'scheduled'})")
+    print(f"  Update type:           {update_type}")
+    print(f"  Generated file:        {written_file or 'none'}")
+    print(f"  index.html:            {'updated' if index_changed else 'unchanged'}")
+    print(f"  archive.html:          {'updated' if archive_changed else 'unchanged'}")
+    print(f"  sitemap.xml:           {'updated' if sitemap_changed else 'unchanged'}")
+
+    # Homepage state
     idx = INDEX_HTML.read_text(encoding="utf-8")
     brief_m  = re.search(r'<!-- LATEST_BRIEF_START -->.*?href="([^"]+)".*?<!-- LATEST_BRIEF_END -->', idx, re.DOTALL)
     update_m = re.search(r'<!-- LATEST_UPDATE_START -->.*?href="([^"]+)".*?<!-- LATEST_UPDATE_END -->', idx, re.DOTALL)
-    print(f"  Homepage full brief:   {brief_m.group(1) if brief_m else 'not set'}")
-    print(f"  Homepage market upd:   {update_m.group(1) if update_m else 'none'}")
+    full_link   = brief_m.group(1)  if brief_m  else "NOT SET"
+    update_link = update_m.group(1) if update_m else "none"
+
+    print(f"  Homepage Read Today's Brief:  {full_link}")
+    print(f"  Homepage Read Full Issue:     {full_link}")
+    print(f"  Homepage Market Update:       {update_link}")
+
+    # Validate: full brief link must never point to updates/
+    if "updates/" in full_link:
+        print("ERROR: 'Read Today's Brief' is pointing to an updates/ file — this is wrong!")
+        sys.exit(1)
+
+    print(f"FULL BRIEF ACTIVE:    {latest_full}")
+    print(f"MARKET UPDATE ACTIVE: {update_link if update_link != 'none' else 'none'}")
     print("=" * 60)
 
 
