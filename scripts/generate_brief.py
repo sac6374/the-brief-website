@@ -1224,9 +1224,18 @@ def save_linkedin(data: dict, date_iso: str) -> None:
         print(f"LinkedIn copy saved: {out}")
 
 
-def update_index_close(data: dict, date_iso: str) -> None:
-    """Update homepage with the close/main brief card."""
+def update_index_full_brief(data: dict, date_iso: str) -> bool:
+    """
+    Update the MAIN brief card (LATEST_BRIEF_START/END) and the hero button.
+    Called ONLY for close (full daily brief). Never called for morning/midday/afterhours.
+
+    Updates:
+    - Hero 'Read Today's Brief' button → close brief
+    - 'Read Full Issue' button → close brief
+    - Latest Issue card headline/teaser/snapshot
+    """
     content = INDEX_HTML.read_text(encoding="utf-8")
+    brief_path = f"briefs/{date_iso}-close.html"
 
     tags = data.get("tags", ["Rates", "Equities", "Wealth Management"])
     tag_html = "".join(f'<span class="tag">{t}</span>' for t in tags[:3])
@@ -1245,18 +1254,19 @@ def update_index_close(data: dict, date_iso: str) -> None:
         )
     mini_html = f'      <div class="mini-snapshot">\n{mini_rows}      </div>\n' if mini_rows else ""
 
-    brief_path = f"briefs/{date_iso}-close.html"
+    headline = data.get("headline", "")
+    teaser   = data.get("homepage_teaser", "")
 
     new_block = (
         "    <!-- LATEST_BRIEF_START -->\n"
         "    <div class=\"latest-card\">\n"
         "      <div class=\"latest-card-header\">\n"
         "        <span class=\"latest-label\">Today's Brief</span>\n"
-        f"        <span class=\"latest-date\">{data['date_display']}</span>\n"
+        f"        <span class=\"latest-date\">{data.get('date_display', date_iso)}</span>\n"
         "      </div>\n"
         "      <div class=\"latest-card-body\">\n"
-        f"        <div class=\"latest-title\">{data['headline']}</div>\n"
-        f"        <p class=\"latest-teaser\">{data.get('homepage_teaser','')}</p>\n"
+        f"        <div class=\"latest-title\">{headline}</div>\n"
+        f"        <p class=\"latest-teaser\">{teaser}</p>\n"
         f"        <div class=\"tag-row\">{tag_html}</div>\n"
         "      </div>\n"
         f"{mini_html}"
@@ -1267,114 +1277,7 @@ def update_index_close(data: dict, date_iso: str) -> None:
         "    <!-- LATEST_BRIEF_END -->"
     )
 
-    # Also update the hero button
-    updated = re.sub(
-        r'href="briefs/[\d\-]+(?:-close)?\.html"(\s+class="btn btn-outline-white">Read Today\'s Brief)',
-        f'href="{brief_path}"\\1',
-        content,
-    )
-
-    updated = re.sub(
-        r"<!-- LATEST_BRIEF_START -->.*?<!-- LATEST_BRIEF_END -->",
-        lambda _: new_block,
-        updated,
-        flags=re.DOTALL,
-    )
-
-    if updated == content:
-        print("WARNING: LATEST_BRIEF markers not found in index.html.")
-    else:
-        INDEX_HTML.write_text(updated, encoding="utf-8")
-        print("index.html updated (close).")
-
-
-def update_index_homepage(data: dict, date_iso: str, update_type: str) -> bool:
-    """
-    Update index.html with the best available brief for today.
-
-    Priority (highest wins):
-        1. today close
-        2. today midday
-        3. today morning
-        4. most recent brief from a previous day
-
-    Updates both the hero 'Read Today's Brief' button AND the
-    latest-card block between LATEST_BRIEF_START / LATEST_BRIEF_END.
-
-    Labels the card 'Today's Brief' if it's from today, else 'Most Recent Brief'.
-
-    Returns True if index.html was changed, False otherwise.
-    """
-    content = INDEX_HTML.read_text(encoding="utf-8")
-
-    # ── Determine the best file to surface ───────────────────────────────────
-    brief_path = f"briefs/{date_iso}-{update_type}.html"
-    is_today   = True
-
-    # If the current update is lower priority than something already written
-    # today, don't downgrade the homepage.
-    priority = {"close": 3, "midday": 2, "morning": 1, "afterhours": 0}
-    current_priority = priority.get(update_type, 0)
-
-    for higher_type, _ in sorted(priority.items(), key=lambda x: -x[1]):
-        if higher_type == update_type:
-            break
-        candidate = BRIEFS_DIR / f"{date_iso}-{higher_type}.html"
-        if candidate.exists():
-            print(f"[index] Higher-priority file exists today: {candidate.name} — keeping it on homepage.")
-            return False  # don't downgrade
-
-    # ── Build label ───────────────────────────────────────────────────────────
-    type_label_map = {
-        "morning": "Today's Brief",
-        "midday":  "Today's Brief",
-        "close":   "Today's Brief",
-    }
-    card_label = type_label_map.get(update_type, "Latest Update") if is_today else "Most Recent Brief"
-
-    # ── Build mini snapshot (first 3 items) ───────────────────────────────────
-    snap = data.get("market_snapshot", [])[:3]
-    mini_rows = ""
-    for item in snap:
-        direction = item.get("direction", "flat")
-        arrow = "▲" if direction == "up" else ("▼" if direction == "down" else "—")
-        mini_rows += (
-            f'        <div class="mini-cell">'
-            f'<div class="mini-label">{item["label"]}</div>'
-            f'<div class="mini-value">{item["value"]}</div>'
-            f'<div class="mini-change {direction}">{arrow} {item["change"]}</div>'
-            f'</div>\n'
-        )
-    mini_html = f'      <div class="mini-snapshot">\n{mini_rows}      </div>\n' if mini_rows else ""
-
-    tags = data.get("tags", [])
-    tag_html = "".join(f'<span class="tag">{t}</span>' for t in tags[:3]) if tags else ""
-    tag_row  = f'        <div class="tag-row">{tag_html}</div>\n' if tag_html else ""
-
-    headline = data.get("headline", "")
-    teaser   = data.get("homepage_teaser", data.get("summary", ""))
-
-    # ── Replace LATEST_BRIEF card block ───────────────────────────────────────
-    new_block = (
-        "    <!-- LATEST_BRIEF_START -->\n"
-        "    <div class=\"latest-card\">\n"
-        "      <div class=\"latest-card-header\">\n"
-        f"        <span class=\"latest-label\">{card_label}</span>\n"
-        f"        <span class=\"latest-date\">{data.get('date_display', date_iso)}</span>\n"
-        "      </div>\n"
-        "      <div class=\"latest-card-body\">\n"
-        f"        <div class=\"latest-title\">{headline}</div>\n"
-        f"        <p class=\"latest-teaser\">{teaser}</p>\n"
-        f"{tag_row}"
-        "      </div>\n"
-        f"{mini_html}"
-        "      <div class=\"latest-card-footer\">\n"
-        f"        <a href=\"{brief_path}\" class=\"btn btn-dark\">Read Full Issue &rarr;</a>\n"
-        "      </div>\n"
-        "    </div>\n"
-        "    <!-- LATEST_BRIEF_END -->"
-    )
-
+    # Update main brief card
     updated = re.sub(
         r"<!-- LATEST_BRIEF_START -->.*?<!-- LATEST_BRIEF_END -->",
         lambda _: new_block,
@@ -1382,7 +1285,7 @@ def update_index_homepage(data: dict, date_iso: str, update_type: str) -> bool:
         flags=re.DOTALL,
     )
 
-    # ── Also update hero 'Read Today's Brief' button ─────────────────────────
+    # Update hero 'Read Today's Brief' button — ONLY for close briefs
     updated = re.sub(
         r'href="briefs/[^"]+\.html"(\s+class="btn btn-outline-white">Read Today\'s Brief)',
         f'href="{brief_path}"\\1',
@@ -1390,11 +1293,93 @@ def update_index_homepage(data: dict, date_iso: str, update_type: str) -> bool:
     )
 
     if updated == content:
-        print("[index] WARNING: LATEST_BRIEF markers not found in index.html — no change.")
+        print("[index] WARNING: LATEST_BRIEF markers not found in index.html.")
         return False
 
     INDEX_HTML.write_text(updated, encoding="utf-8")
-    print(f"[index] Homepage updated to: {brief_path}")
+    print(f"[index] Full brief card updated → {brief_path}")
+    return True
+
+
+def update_index_market_update(data: dict, date_iso: str, update_type: str) -> bool:
+    """
+    Update the MARKET UPDATE card (LATEST_UPDATE_START/END).
+    Called for morning, midday, and afterhours updates.
+
+    NEVER touches the main LATEST_BRIEF card or the hero button.
+    Those always point to the latest full close brief.
+    """
+    content = INDEX_HTML.read_text(encoding="utf-8")
+    update_path = f"briefs/{date_iso}-{update_type}.html"
+
+    label_map = {
+        "morning":    "Morning Market Setup",
+        "midday":     "Midday Market Update",
+        "afterhours": "After-Hours Update",
+    }
+    card_label = label_map.get(update_type, "Latest Market Update")
+
+    headline = data.get("headline", "")
+    summary  = data.get("homepage_teaser", data.get("summary", ""))
+    date_display = data.get("date_display", date_iso)
+
+    new_section = (
+        "<section class=\"section\" style=\"padding-top:0\">\n"
+        "  <div class=\"wrap\">\n"
+        "    <!-- LATEST_UPDATE_START -->\n"
+        "    <div class=\"latest-update-card\">\n"
+        "      <div class=\"latest-update-header\">\n"
+        f"        <span class=\"latest-update-label\">{card_label}</span>\n"
+        f"        <span class=\"latest-date\">{date_display}</span>\n"
+        "      </div>\n"
+        "      <div class=\"latest-update-body\">\n"
+        f"        <div class=\"latest-update-title\">{headline}</div>\n"
+        f"        <p class=\"latest-update-teaser\">{summary}</p>\n"
+        "      </div>\n"
+        "      <div class=\"latest-update-footer\">\n"
+        f"        <a href=\"{update_path}\" class=\"btn btn-outline\">Read Market Update &rarr;</a>\n"
+        "      </div>\n"
+        "    </div>\n"
+        "    <!-- LATEST_UPDATE_END -->\n"
+        "  </div>\n"
+        "</section>\n"
+    )
+
+    if "<!-- LATEST_UPDATE_START -->" in content:
+        # Replace existing update card
+        updated = re.sub(
+            r"<!-- LATEST_UPDATE_START -->.*?<!-- LATEST_UPDATE_END -->",
+            (
+                "<!-- LATEST_UPDATE_START -->\n"
+                "    <div class=\"latest-update-card\">\n"
+                "      <div class=\"latest-update-header\">\n"
+                f"        <span class=\"latest-update-label\">{card_label}</span>\n"
+                f"        <span class=\"latest-date\">{date_display}</span>\n"
+                "      </div>\n"
+                "      <div class=\"latest-update-body\">\n"
+                f"        <div class=\"latest-update-title\">{headline}</div>\n"
+                f"        <p class=\"latest-update-teaser\">{summary}</p>\n"
+                "      </div>\n"
+                "      <div class=\"latest-update-footer\">\n"
+                f"        <a href=\"{update_path}\" class=\"btn btn-outline\">Read Market Update &rarr;</a>\n"
+                "      </div>\n"
+                "    </div>\n"
+                "    <!-- LATEST_UPDATE_END -->"
+            ),
+            content,
+            flags=re.DOTALL,
+        )
+    else:
+        # LATEST_UPDATE_START not in page at all — shouldn't happen after the HTML fix
+        print("[index] WARNING: LATEST_UPDATE markers not found in index.html.")
+        return False
+
+    if updated == content:
+        print("[index] No change to market update card.")
+        return False
+
+    INDEX_HTML.write_text(updated, encoding="utf-8")
+    print(f"[index] Market update card updated → {update_path}")
     return True
 
 
@@ -1437,47 +1422,75 @@ def update_index_breaking(data: dict, date_iso: str, filename: str) -> None:
 
 
 def update_archive(data: dict, date_iso: str, update_type: str, url_path: str) -> None:
+    """
+    Insert into the correct archive section:
+      close            → ARCHIVE_BRIEFS_START/END  (Full Daily Briefs)
+      morning/midday/
+      afterhours/
+      breaking         → ARCHIVE_UPDATES_START/END (Market Updates)
+    """
     content = ARCHIVE_HTML.read_text(encoding="utf-8")
     parts = date_iso.split("-")
     month_abbr = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][int(parts[1])]
     day, year = int(parts[2]), parts[0]
 
-    badge_class = TYPE_BADGE_CSS.get(update_type, "badge-close")
-    type_label  = TYPE_LABELS.get(update_type, update_type.title())
-    headline    = data.get("headline", "Market Update")
-    teaser      = data.get("archive_teaser", data.get("summary", ""))
+    headline = data.get("headline", "Market Update")
+    teaser   = data.get("archive_teaser", data.get("summary", ""))
 
-    badge_html = (
-        f'<span style="display:inline-block;font-family:\'DM Mono\',monospace;'
-        f'font-size:8px;letter-spacing:.16em;text-transform:uppercase;'
-        f'padding:2px 8px;margin-bottom:5px;border-radius:2px;" '
-        f'class="{badge_class}">{type_label}</span>'
-    )
+    is_full_brief = (update_type == "close")
 
-    new_item = (
-        f"\n    <li class=\"archive-item\">\n"
-        f"      <div class=\"archive-date\">{month_abbr} {day}<br>{year}</div>\n"
-        f"      <div>\n"
-        f"        {badge_html}\n"
-        f"        <a class=\"archive-title\" href=\"{url_path}\">{headline}</a>\n"
-        f"        <p class=\"archive-teaser\">{teaser}</p>\n"
-        f"      </div>\n"
-        f"    </li>\n"
-    )
+    if is_full_brief:
+        # Full brief — no badge, clean entry
+        new_item = (
+            f"\n      <li class=\"archive-item\">\n"
+            f"        <div class=\"archive-date\">{month_abbr} {day}<br>{year}</div>\n"
+            f"        <div>\n"
+            f"          <a class=\"archive-title\" href=\"{url_path}\">{headline}</a>\n"
+            f"          <p class=\"archive-teaser\">{teaser}</p>\n"
+            f"        </div>\n"
+            f"      </li>\n"
+        )
+        marker = "ARCHIVE_BRIEFS_START"
+        fallback_marker = "ARCHIVE_LIST_START"
+    else:
+        # Market update — badge label
+        badge_class = TYPE_BADGE_CSS.get(update_type, "badge-afterhours")
+        type_label  = TYPE_LABELS.get(update_type, update_type.title())
+        badge_html  = (
+            f'<span class="{badge_class}" '
+            f'style="display:inline-block;font-family:\'DM Mono\',monospace;'
+            f'font-size:8px;letter-spacing:.16em;text-transform:uppercase;'
+            f'padding:2px 8px;margin-bottom:5px;border-radius:2px;">{type_label}</span>'
+        )
+        new_item = (
+            f"\n      <li class=\"archive-item\">\n"
+            f"        <div class=\"archive-date\">{month_abbr} {day}<br>{year}</div>\n"
+            f"        <div>\n"
+            f"          {badge_html}\n"
+            f"          <a class=\"archive-title\" href=\"{url_path}\">{headline}</a>\n"
+            f"          <p class=\"archive-teaser\">{teaser}</p>\n"
+            f"        </div>\n"
+            f"      </li>\n"
+        )
+        marker = "ARCHIVE_UPDATES_START"
+        fallback_marker = "ARCHIVE_LIST_START"
 
-    updated = re.sub(
-        r"(<!-- ARCHIVE_LIST_START -->\s*<ul[^>]*>)",
-        lambda m: m.group(0) + new_item,
-        content,
-        flags=re.DOTALL,
-    )
+    # Try the specific section marker first, fall back to the old combined list
+    pattern = rf"(<!-- {marker} -->\s*<ul[^>]*>)"
+    updated = re.sub(pattern, lambda m: m.group(0) + new_item, content, flags=re.DOTALL)
 
     if updated == content:
-        print("WARNING: ARCHIVE_LIST_START not found in archive.html.")
+        # Fallback: try old-style single list
+        fallback_pattern = rf"(<!-- {fallback_marker} -->\s*<ul[^>]*>)"
+        updated = re.sub(fallback_pattern, lambda m: m.group(0) + new_item, content, flags=re.DOTALL)
+
+    if updated == content:
+        print(f"WARNING: Archive marker not found for {update_type} — archive.html unchanged.")
     else:
         ARCHIVE_HTML.write_text(updated, encoding="utf-8")
-        print(f"archive.html updated ({update_type}).")
+        section = "Full Briefs" if is_full_brief else "Market Updates"
+        print(f"archive.html updated ({update_type} → {section}).")
 
 
 def update_sitemap(url: str) -> None:
@@ -1561,7 +1574,7 @@ def main() -> None:
     sitemap_changed = False
     written_file    = None
 
-    # ── Close (full daily brief) ──────────────────────────────────────────────
+    # ── Close — generates FULL daily brief; updates main homepage card + hero ──
     if update_type == "close":
         data = generate_close(today_iso, date_display)
         filename = f"{today_iso}-close.html"
@@ -1572,11 +1585,12 @@ def main() -> None:
         written_file = out_path
         print(f"[close] Written: {out_path}")
         save_linkedin(data, today_iso)
-        index_changed   = update_index_homepage(data, today_iso, "close")
+        # Close ONLY updates the main brief card + hero button
+        index_changed   = update_index_full_brief(data, today_iso)
         archive_changed = _update_archive_tracked(data, today_iso, "close", f"briefs/{filename}")
         sitemap_changed = _update_sitemap_tracked(f"https://readmarketbrief.com/briefs/{filename}")
 
-    # ── Morning / Midday — always publish ────────────────────────────────────
+    # ── Morning / Midday — short update; updates ONLY the market update card ──
     elif update_type in ("morning", "midday"):
         data = generate_scheduled_update(update_type, today_iso, date_display)
         filename = f"{today_iso}-{update_type}.html"
@@ -1586,11 +1600,12 @@ def main() -> None:
         out_path.write_text(build_update_page(data, update_type), encoding="utf-8")
         written_file = out_path
         print(f"[{update_type}] Written: {out_path}")
-        index_changed   = update_index_homepage(data, today_iso, update_type)
+        # Morning/midday NEVER touch the main brief card or hero button
+        index_changed   = update_index_market_update(data, today_iso, update_type)
         archive_changed = _update_archive_tracked(data, today_iso, update_type, f"briefs/{filename}")
         sitemap_changed = _update_sitemap_tracked(f"https://readmarketbrief.com/briefs/{filename}")
 
-    # ── Afterhours — conditional: only publish if meaningful news ─────────────
+    # ── Afterhours — conditional short update; never replaces main brief ───────
     elif update_type == "afterhours":
         data = generate_afterhours(today_iso, date_display)
         if data is None:
@@ -1603,6 +1618,8 @@ def main() -> None:
         out_path.write_text(build_update_page(data, "afterhours"), encoding="utf-8")
         written_file = out_path
         print(f"[afterhours] Written: {out_path}")
+        # Afterhours shows as a market update card, never replaces main brief
+        index_changed   = update_index_market_update(data, today_iso, "afterhours")
         archive_changed = _update_archive_tracked(data, today_iso, "afterhours", f"briefs/{filename}")
         sitemap_changed = _update_sitemap_tracked(f"https://readmarketbrief.com/briefs/{filename}")
 
