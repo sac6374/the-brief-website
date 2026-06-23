@@ -777,7 +777,7 @@ def build_update_page(data: dict, update_type: str) -> str:
     snapshot    = data.get("market_snapshot", [])
     key_points  = data.get("key_points", [])
     what_to_watch = data.get("what_to_watch", "")
-    site_url    = f"https://readmarketbrief.com/briefs/{date_iso}-{update_type}.html"
+    site_url    = f"https://readmarketbrief.com/updates/{date_iso}-{update_type}.html"
 
     badge_class = TYPE_BADGE_CSS.get(update_type, "badge-close")
     type_label  = TYPE_LABELS.get(update_type, update_type.title())
