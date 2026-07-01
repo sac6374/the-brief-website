@@ -825,7 +825,10 @@ def build_update_page(data: dict, update_type: str) -> str:
                 '</div>\n'
             )
 
-    close_link = f'briefs/{date_iso}.html'
+    # Link to the latest EXISTING full brief — today's close doesn't exist yet
+    # when morning/midday updates are generated, so linking briefs/{today}.html
+    # would be a dead link until 4:15 PM ET.
+    close_link = find_latest_full_brief()
 
     return f"""<!DOCTYPE html>
 <html lang="en">
