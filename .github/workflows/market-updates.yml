@@ -76,7 +76,12 @@ jobs:
         run: |
           TYPE="${{ steps.update_type.outputs.type }}"
           DATE=$(TZ=America/New_York date +'%Y-%m-%d')
-          FILE="briefs/${DATE}-${TYPE}.html"
+          # close → full brief in briefs/; morning/midday/afterhours → updates/
+          if [ "$TYPE" = "close" ]; then
+            FILE="briefs/${DATE}.html"
+          else
+            FILE="updates/${DATE}-${TYPE}.html"
+          fi
           if [ -f "$FILE" ]; then
             echo "skip=true" >> $GITHUB_OUTPUT
             echo "Already published today: $FILE — skipping to avoid duplicates."
@@ -113,6 +118,10 @@ jobs:
               fi
             fi
           done
+
+      - name: Validate site routing and templates
+        if: steps.skip_check.outputs.skip != 'true'
+        run: python scripts/validate_site.py
 
       - name: Commit and push
         if: steps.skip_check.outputs.skip != 'true'
