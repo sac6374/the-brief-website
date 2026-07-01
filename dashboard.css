@@ -126,8 +126,10 @@ body.dash-page .site-footer a:hover { color: var(--text) !important; }
 
 /* ── Hero ──────────────────────────────────────────────────────────── */
 .db-hero {
-  background: var(--bg-nav);
-  padding: 32px 24px 26px;
+  background:
+    radial-gradient(ellipse 70% 90% at 50% -20%, rgba(212,160,23,0.10) 0%, transparent 60%),
+    var(--bg-nav);
+  padding: 36px 24px 28px;
   text-align: center;
   border-bottom: 1px solid var(--border);
 }
@@ -273,7 +275,9 @@ body.dash-page .site-footer a:hover { color: var(--text) !important; }
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  transition: border-color .2s;
 }
+.dc:hover { border-color: var(--border-hi); }
 .dc-head {
   display: flex;
   align-items: center;

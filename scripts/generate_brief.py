@@ -182,7 +182,8 @@ BRIEF_CSS = """
   p:last-child{margin-bottom:0}
   em{font-style:italic}strong{font-weight:600}
   a{color:var(--red)}
-  .aside{border-left:2px solid var(--rule);padding:3px 0 3px 16px;margin:18px 0;color:var(--muted);font-size:14px;line-height:1.72;font-style:italic}
+  .aside{border-left:3px solid var(--gold);background:var(--gold-bg);padding:14px 18px;margin:22px 0;color:#5a4a1e;font-size:14.5px;line-height:1.74;font-style:italic}
+  @media(max-width:560px){body{font-size:16px}.wrap{padding:0 18px 64px}.section{margin-top:36px}.issue-headline{font-size:23px}}
   .chain{background:var(--paper-2);border-top:2px solid var(--ink);border-left:none;border-right:none;border-bottom:1px solid var(--rule);padding:22px 24px;margin:18px 0}
   .chain-row{display:grid;grid-template-columns:76px 1fr;gap:16px;padding:11px 0;border-bottom:1px solid var(--rule);align-items:start}
   .chain-row:first-child{padding-top:0}.chain-row:last-child{padding-bottom:0;border-bottom:none}
