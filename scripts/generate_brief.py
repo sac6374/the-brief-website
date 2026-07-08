@@ -700,7 +700,6 @@ def build_close_page(data: dict) -> str:
 <nav class="brief-nav">
   <a href="../index.html" class="brief-nav-brand">The Brief</a>
   <div class="brief-nav-links">
-    <a href="../dashboard.html">Dashboard</a>
     <a href="../archive.html">Archive</a>
     <a href="../subscribe.html" class="nav-cta">Subscribe Free</a>
   </div>
@@ -851,7 +850,6 @@ def build_update_page(data: dict, update_type: str) -> str:
 <nav class="brief-nav">
   <a href="../index.html" class="brief-nav-brand">The Brief</a>
   <div class="brief-nav-links">
-    <a href="../dashboard.html">Dashboard</a>
     <a href="../archive.html">Archive</a>
     <a href="../subscribe.html" class="nav-cta">Subscribe Free</a>
   </div>
@@ -1116,7 +1114,6 @@ def build_breaking_page(data: dict) -> str:
 <nav class="brief-nav">
   <a href="../index.html" class="brief-nav-brand">The Brief</a>
   <div class="brief-nav-links">
-    <a href="../dashboard.html">Dashboard</a>
     <a href="../archive.html">Archive</a>
     <a href="../subscribe.html" class="nav-cta">Subscribe Free</a>
   </div>
@@ -1260,28 +1257,9 @@ def find_latest_full_brief() -> str:
     return candidates[0][1]
 
 
-def update_dashboard_brief_link(brief_path: str) -> bool:
-    """Update all 'Read Today's Brief' links in dashboard.html to brief_path."""
-    dashboard = ROOT / "dashboard.html"
-    if not dashboard.exists():
-        return False
-    content = dashboard.read_text(encoding="utf-8")
-    updated = re.sub(
-        r'href="briefs/[^"]+\.html"(\s+class="db-btn db-btn-primary">Read Today\'s Brief)',
-        f'href="{brief_path}"\\1',
-        content,
-    )
-    if updated == content:
-        return False
-    dashboard.write_text(updated, encoding="utf-8")
-    print(f"[dashboard] Read Today's Brief → {brief_path}")
-    return True
-
-
 def update_index_full_brief(data: dict, date_iso: str) -> bool:
     """
-    Update the MAIN brief card (LATEST_BRIEF_START/END), the hero button,
-    AND the dashboard 'Read Today's Brief' buttons.
+    Update the MAIN brief card (LATEST_BRIEF_START/END), the hero button.
     Called ONLY for close (full daily brief). Never called for morning/midday/afterhours.
 
     Full daily briefs live at: briefs/YYYY-MM-DD.html (no type suffix)
@@ -1289,7 +1267,6 @@ def update_index_full_brief(data: dict, date_iso: str) -> bool:
     Updates:
     - Hero 'Read Today's Brief' button → full brief
     - 'Read Full Issue' button → full brief
-    - dashboard.html 'Read Today's Brief' buttons → full brief
     - Latest Issue card headline/teaser/snapshot
     """
     content = INDEX_HTML.read_text(encoding="utf-8")
@@ -1356,8 +1333,6 @@ def update_index_full_brief(data: dict, date_iso: str) -> bool:
 
     INDEX_HTML.write_text(updated, encoding="utf-8")
     print(f"[index] Full brief card updated → {brief_path}")
-    # Also update dashboard.html
-    update_dashboard_brief_link(brief_path)
     return True
 
 

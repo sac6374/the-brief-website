@@ -835,60 +835,6 @@ a { color: var(--red); }
 .site-footer a { color: rgba(247,244,239,0.45); text-decoration: none; }
 .site-footer a:hover { color: var(--paper); }
 
-/* ── Dashboard preview band (homepage) ──────────────────────────────────── */
-.dash-preview {
-  background:
-    radial-gradient(ellipse 70% 80% at 50% 110%, rgba(160,120,32,0.10) 0%, transparent 60%),
-    linear-gradient(180deg, #0a1522, #101f31);
-  padding: 72px 28px;
-  text-align: center;
-}
-.dash-preview h2 { color: #fff; }
-.dash-preview-sub {
-  color: rgba(247,244,239,0.62);
-  font-size: 15px;
-  line-height: 1.78;
-  max-width: 520px;
-  margin: 0 auto 34px;
-}
-.dash-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(130px, 170px));
-  gap: 10px;
-  justify-content: center;
-  margin-bottom: 36px;
-}
-@media (max-width: 700px) { .dash-preview-grid { grid-template-columns: repeat(2, 1fr); max-width: 380px; margin-left: auto; margin-right: auto; } }
-.dash-preview-cell {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.09);
-  border-radius: 10px;
-  padding: 14px 16px;
-  text-align: left;
-}
-.dash-preview-tick {
-  font-family: 'DM Mono', monospace;
-  font-size: 9px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: rgba(247,244,239,0.45);
-  margin-bottom: 6px;
-}
-.dash-preview-name {
-  font-family: 'DM Mono', monospace;
-  font-size: 13px;
-  font-weight: 500;
-  color: #f2ede4;
-}
-.dash-preview-note {
-  font-family: 'DM Mono', monospace;
-  font-size: 8.5px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: rgba(247,244,239,0.28);
-  margin-top: 18px;
-}
-
 /* ── Utility ─────────────────────────────────────────────────────────────── */
 .section-rule { border-top: 1px solid var(--rule); }
 .section-rule-ink { border-top: 2px solid var(--ink); }

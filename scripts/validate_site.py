@@ -10,7 +10,7 @@ Fails (exit 1) if:
   5. The latest full brief is missing doctype / head / nav / footer
   6. archive.html is missing its section markers
   7. sitemap.xml is not valid XML
-  8. Any homepage/dashboard main-brief link points to a missing file
+  8. Any homepage main-brief link points to a missing file
 
 Run:  python scripts/validate_site.py
 """
@@ -48,7 +48,7 @@ def latest_full_brief() -> Path:
 print("=== validate_site ===")
 
 # ── 1+2+8: main-brief buttons must point to briefs/ and file must exist ─────
-for page_name in ("index.html", "dashboard.html"):
+for page_name in ("index.html",):
     page = ROOT / page_name
     content = page.read_text(encoding="utf-8")
     for m in re.finditer(r'href="([^"]+)"[^>]*>\s*Read (Today\'s Brief|Full Issue)', content):
