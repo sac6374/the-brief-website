@@ -20,7 +20,7 @@ on:
       update_type:
         description: "Update type"
         required: true
-        default: "morning"
+        default: "close"
         type: choice
         options:
           - morning
