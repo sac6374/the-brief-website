@@ -402,7 +402,8 @@ def render_market_snapshot(snapshot: list, time_label: str = "At Close") -> str:
 # API call
 # ─────────────────────────────────────────────────────────────────────────────
 
-def call_api(system_prompt: str, user_message: str, max_tokens: int = 8000) -> str:
+def call_api(system_prompt: str, user_message: str, max_tokens: int = 8000,
+             model: str = "claude-sonnet-4-6", max_searches: int = 10) -> str:
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         print("ERROR: ANTHROPIC_API_KEY environment variable is not set.")
@@ -410,14 +411,14 @@ def call_api(system_prompt: str, user_message: str, max_tokens: int = 8000) -> s
 
     client = anthropic.Anthropic(api_key=api_key)
 
-    print(f"Calling Anthropic API (claude-sonnet-4-6)...")
+    print(f"Calling Anthropic API ({model}, max {max_searches} searches)...")
 
     try:
         response = client.messages.create(
-            model="claude-sonnet-4-6",
+            model=model,
             max_tokens=max_tokens,
             system=system_prompt,
-            tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 12}],
+            tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": max_searches}],
             messages=[{"role": "user", "content": user_message}],
         )
     except anthropic.APIConnectionError as e:
@@ -758,7 +759,9 @@ def generate_close(today_iso: str, date_display: str) -> dict:
         "If data is unavailable use null, not explanatory text."
     )
 
-    raw  = call_api(system_prompt, user_message, max_tokens=16000)
+    # Full daily brief: keep the strong model, cap searches at 10
+    raw  = call_api(system_prompt, user_message, max_tokens=16000,
+                    model="claude-sonnet-4-6", max_searches=10)
     data = extract_json(raw)
     validate_close(data)
     data["date_iso"]     = today_iso
@@ -956,7 +959,9 @@ Return ONLY this JSON object:
         "If a value is unavailable, use null — not a string like 'unavailable'."
     )
 
-    raw  = call_api(system_prompt, user_message, max_tokens=6000)
+    # Short updates: cheaper model, fewer searches — ~70% cost reduction
+    raw  = call_api(system_prompt, user_message, max_tokens=4000,
+                    model="claude-haiku-4-5-20251001", max_searches=5)
     data = extract_json(raw)
 
     missing = [f for f in UPDATE_REQUIRED_FIELDS if f not in ("publish",) and
@@ -1048,7 +1053,9 @@ If nothing meets the publish criteria, return exactly: {{"publish": false}}"""
         "If nothing qualifies, return exactly: {\"publish\": false}"
     )
 
-    raw  = call_api(system_prompt, user_message, max_tokens=4000)
+    # Conditional afterhours check: cheap model, minimal searches
+    raw  = call_api(system_prompt, user_message, max_tokens=3000,
+                    model="claude-haiku-4-5-20251001", max_searches=4)
     data = extract_json(raw)
 
     if not data.get("publish", True):
@@ -1195,7 +1202,8 @@ If breaking news exists, return:
         "If nothing qualifies, return exactly: {\"publish\": false}"
     )
 
-    raw  = call_api(system_prompt, user_message, max_tokens=3000)
+    raw  = call_api(system_prompt, user_message, max_tokens=3000,
+                    model="claude-haiku-4-5-20251001", max_searches=4)
     data = extract_json(raw)
 
     if not data.get("publish", True):
