@@ -738,6 +738,8 @@ def build_close_page(data: dict) -> str:
 
 
 def generate_close(today_iso: str, date_display: str) -> dict:
+    """Generate the FULL DAILY BRIEF. Published at 8 AM ET — covers the most
+    recent completed session, overnight developments, and the day ahead."""
     if not SYSTEM_PROMPT_FILE.exists():
         print(f"ERROR: System prompt not found at {SYSTEM_PROMPT_FILE}")
         sys.exit(1)
@@ -746,12 +748,16 @@ def generate_close(today_iso: str, date_display: str) -> dict:
     today_fmt = datetime.now(ET).strftime("%A, %B %-d, %Y")
 
     user_message = (
-        f"Today is {today_fmt}. "
-        "Use your web_search tool to retrieve today's real market data and news. "
-        "Search for: S&P 500 close, Nasdaq close, Dow close, VIX, 10-year Treasury yield, "
-        "WTI crude, top movers, major earnings, Fed news, and the 2-3 biggest market stories today. "
+        f"Today is {today_fmt}, early morning before the US market open. "
+        "This issue is read by subscribers BEFORE the trading day starts. "
+        "Use your web_search tool to retrieve real market data and news. "
+        "Search for: the most recent S&P 500 / Nasdaq / Dow closing levels, VIX, "
+        "10-year Treasury yield, WTI crude, the biggest movers from the last session, "
+        "overnight and premarket developments (futures, Asia/Europe sessions, earnings, Fed news), "
+        "and the 2-3 biggest market stories right now. "
         "Also search for a suitable editorial image. "
-        "Then produce a complete close-of-day issue of The Brief. "
+        "Then produce a complete issue of The Brief that recaps the last completed session, "
+        "covers what happened overnight, and previews what to watch today. "
         "CRITICAL OUTPUT RULE: Your response must be ONLY the JSON object. "
         "Start your response with { and end with }. "
         "No prose before the JSON. No explanation after the JSON. "
@@ -790,6 +796,7 @@ def build_update_page(data: dict, update_type: str) -> str:
 
     snap_time = {
         "morning": "Pre-Market",
+        "close":   "At Close",
         "midday":  "Midday",
         "afterhours": "After Hours",
     }.get(update_type, "Current")
@@ -887,29 +894,30 @@ def build_update_page(data: dict, update_type: str) -> str:
 
 def generate_scheduled_update(update_type: str, today_iso: str, date_display: str) -> dict:
     """
-    Generate a MORNING or MIDDAY update. These always publish — no conditional logic.
+    Generate a MIDDAY or CLOSE update. These always publish — no conditional logic.
     The workflow runs them on a fixed schedule and they always produce a file.
+    (The full daily brief is published by the morning run — see generate_close.)
     """
-    assert update_type in ("morning", "midday"), f"generate_scheduled_update called with {update_type}"
+    assert update_type in ("midday", "close"), f"generate_scheduled_update called with {update_type}"
 
     et_now    = now_et()
     today_fmt = et_now.strftime("%A, %B %-d, %Y")
     time_fmt  = et_now.strftime("%-I:%M %p ET")
 
     type_context = {
-        "morning": (
-            "This is the MORNING PRE-MARKET brief, published at 8 AM ET before market open. "
-            "Always publish — this runs every weekday morning regardless of market conditions. "
-            "Cover: overnight macro/geopolitical developments, US futures direction, "
-            "global markets (Europe/Asia overnight), rates, oil, crypto, pre-market movers, "
-            "and 3-5 key things to watch today. Concise — a quick read before open."
-        ),
         "midday": (
             "This is the MIDDAY UPDATE, published at 12 PM ET during the trading session. "
             "Always publish — this runs every weekday at noon. "
             "Cover: how US markets are performing mid-session, biggest movers so far, "
             "key headlines affecting the tape, sector performance, what to watch into the close. "
             "Concise and focused — no filler."
+        ),
+        "close": (
+            "This is the MARKET CLOSE UPDATE, published shortly after 4 PM ET. "
+            "Always publish — this runs every weekday after the closing bell. "
+            "Cover: where the major indices closed, the day's biggest movers and why, "
+            "rates/oil/crypto at the close, and 2-3 things to watch after hours and tomorrow. "
+            "Concise — the full analysis comes in tomorrow morning's brief."
         ),
     }[update_type]
 
@@ -1358,6 +1366,7 @@ def update_index_market_update(data: dict, date_iso: str, update_type: str) -> b
 
     label_map = {
         "morning":    "Morning Market Setup",
+        "close":      "Market Close Update",
         "midday":     "Midday Market Update",
         "afterhours": "After-Hours Update",
     }
@@ -1482,7 +1491,7 @@ def update_archive(data: dict, date_iso: str, update_type: str, url_path: str) -
     headline = data.get("headline", "Market Update")
     teaser   = data.get("archive_teaser", data.get("summary", ""))
 
-    is_full_brief = (update_type == "close")
+    is_full_brief = url_path.startswith("briefs/")
 
     if is_full_brief:
         # Full brief — no badge, clean entry
@@ -1620,25 +1629,27 @@ def main() -> None:
 
     UPDATES_DIR.mkdir(exist_ok=True)
 
-    # ── Close — FULL DAILY BRIEF → briefs/YYYY-MM-DD.html ────────────────────
-    if update_type == "close":
+    # ── Morning — FULL DAILY BRIEF → briefs/YYYY-MM-DD.html ──────────────────
+    # The flagship issue publishes FIRST thing in the morning (8 AM ET):
+    # yesterday's session recap + overnight developments + the day ahead.
+    if update_type == "morning":
         data = generate_close(today_iso, date_display)
         filename = f"{today_iso}.html"            # briefs/YYYY-MM-DD.html — no type suffix
         out_path = BRIEFS_DIR / filename
         if out_path.exists():
-            print(f"[close] WARNING: {out_path.name} already exists — overwriting.")
+            print(f"[morning] WARNING: {out_path.name} already exists — overwriting.")
         out_path.write_text(build_close_page(data), encoding="utf-8")
         written_file = out_path
-        print(f"[close] Written: {out_path}")
+        print(f"[morning] Written: {out_path}")
         save_linkedin(data, today_iso)
-        # Close updates the main brief card + hero — the ONLY type that does this
+        # Morning updates the main brief card + hero — the ONLY type that does this
         index_changed   = update_index_full_brief(data, today_iso)
         archive_changed = _update_archive_tracked(data, today_iso, "close", f"briefs/{filename}")
         sitemap_changed = _update_sitemap_tracked(f"https://readmarketbrief.com/briefs/{filename}")
         print(f"FULL BRIEF LINK: briefs/{filename}")
 
-    # ── Morning / Midday — SHORT UPDATE → updates/YYYY-MM-DD-{type}.html ─────
-    elif update_type in ("morning", "midday"):
+    # ── Midday / Close — SHORT UPDATE → updates/YYYY-MM-DD-{type}.html ───────
+    elif update_type in ("midday", "close"):
         data = generate_scheduled_update(update_type, today_iso, date_display)
         filename = f"{today_iso}-{update_type}.html"
         out_path = UPDATES_DIR / filename          # goes to updates/, NOT briefs/
@@ -1647,7 +1658,7 @@ def main() -> None:
         out_path.write_text(build_update_page(data, update_type), encoding="utf-8")
         written_file = out_path
         print(f"[{update_type}] Written: {out_path}")
-        # Morning/midday NEVER touch the main brief card or hero button
+        # Midday/close NEVER touch the main brief card or hero button
         index_changed   = update_index_market_update(data, today_iso, update_type)
         archive_changed = _update_archive_tracked(data, today_iso, update_type, f"updates/{filename}")
         sitemap_changed = _update_sitemap_tracked(f"https://readmarketbrief.com/updates/{filename}")
@@ -1695,7 +1706,7 @@ def main() -> None:
 
     # ── Final summary ─────────────────────────────────────────────────────────
     latest_full   = find_latest_full_brief()
-    latest_update = f"updates/{today_iso}-{update_type}.html" if update_type in ("morning","midday","afterhours") and written_file else None
+    latest_update = f"updates/{today_iso}-{update_type}.html" if update_type in ("midday","close","afterhours") and written_file else None
 
     print("=" * 60)
     print("=== Run complete ===")

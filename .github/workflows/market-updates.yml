@@ -3,10 +3,10 @@ name: Market Updates
 # Each cron maps 1-to-1 to an update type — no time-window checks in Python.
 # GitHub Actions crons can fire hours late; explicit --type bypasses that.
 #
-#   0 12 * * 1-5  → morning    (target 08:00 EDT)
-#   0 16 * * 1-5  → midday     (target 12:00 EDT)
-#   15 20 * * 1-5 → close      (target 16:15 EDT)
-#   30 22 * * 1-5 → afterhours (target 18:30 EDT)
+#   0 12 * * 1-5  → morning    (08:00 EDT) — FULL DAILY BRIEF (flagship issue)
+#   0 16 * * 1-5  → midday     (12:00 EDT) — short update
+#   15 20 * * 1-5 → close      (16:15 EDT) — short update
+#   30 22 * * 1-5 → afterhours (18:30 EDT) — conditional short update
 
 on:
   schedule:
@@ -20,7 +20,7 @@ on:
       update_type:
         description: "Update type"
         required: true
-        default: "close"
+        default: "morning"
         type: choice
         options:
           - morning
@@ -76,8 +76,8 @@ jobs:
         run: |
           TYPE="${{ steps.update_type.outputs.type }}"
           DATE=$(TZ=America/New_York date +'%Y-%m-%d')
-          # close → full brief in briefs/; morning/midday/afterhours → updates/
-          if [ "$TYPE" = "close" ]; then
+          # morning → full brief in briefs/; midday/close/afterhours → updates/
+          if [ "$TYPE" = "morning" ]; then
             FILE="briefs/${DATE}.html"
           else
             FILE="updates/${DATE}-${TYPE}.html"
@@ -135,9 +135,9 @@ jobs:
           TYPE="${{ steps.update_type.outputs.type }}"
           DATE=$(TZ=America/New_York date +'%Y-%m-%d')
           case "$TYPE" in
-            morning)    MSG="Generate morning market brief ${DATE}" ;;
+            morning)    MSG="Generate morning full brief ${DATE}" ;;
             midday)     MSG="Generate midday market update ${DATE}" ;;
-            close)      MSG="Generate market close recap ${DATE}" ;;
+            close)      MSG="Generate market close update ${DATE}" ;;
             afterhours) MSG="Generate afterhours update ${DATE}" ;;
             breaking)   MSG="Generate breaking market update ${DATE}" ;;
             *)          MSG="Generate market update ${DATE}" ;;
