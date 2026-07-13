@@ -64,6 +64,15 @@ jobs:
               *)               TYPE="morning" ;;
             esac
             TRIGGER="scheduled"
+
+            # Self-heal: if today's full brief is missing (e.g. the 8 AM run
+            # failed all retries), upgrade this slot to publish it instead of
+            # a short update. Flagship > side updates.
+            DATE=$(TZ=America/New_York date +'%Y-%m-%d')
+            if [ "$TYPE" != "morning" ] && [ "$TYPE" != "afterhours" ] && [ ! -f "briefs/${DATE}.html" ]; then
+              echo "Today's full brief briefs/${DATE}.html is missing — upgrading $TYPE run to morning (full brief)."
+              TYPE="morning"
+            fi
           fi
           echo "type=$TYPE"       >> $GITHUB_OUTPUT
           echo "trigger=$TRIGGER" >> $GITHUB_OUTPUT

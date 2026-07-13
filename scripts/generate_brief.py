@@ -441,7 +441,14 @@ def call_api(system_prompt: str, user_message: str, max_tokens: int = 8000,
         print(f"ERROR: API returned no text content. Stop reason: {response.stop_reason}")
         sys.exit(1)
 
-    print(f"Received {len(text_content)} chars from API.")
+    if response.stop_reason == "max_tokens":
+        # Truncated output = unparseable JSON downstream. Fail with a clear
+        # diagnostic instead of a confusing parse error.
+        print(f"ERROR: Response truncated at max_tokens={max_tokens} "
+              f"({len(text_content)} chars received). Increase the token budget.")
+        sys.exit(1)
+
+    print(f"Received {len(text_content)} chars from API (stop: {response.stop_reason}).")
     return text_content
 
 
@@ -632,6 +639,8 @@ def validate_close(data: dict) -> None:
     missing = [f for f in CLOSE_REQUIRED_FIELDS if field_missing(f)]
     if missing:
         print(f"ERROR: Response missing required fields: {missing}")
+        print(f"       Fields present: {list(data.keys())}")
+        save_raw(json.dumps(data, indent=2)[:20000])
         sys.exit(1)
 
     validate_image(data)
@@ -765,8 +774,10 @@ def generate_close(today_iso: str, date_display: str) -> dict:
         "If data is unavailable use null, not explanatory text."
     )
 
-    # Full daily brief: keep the strong model, cap searches at 10
-    raw  = call_api(system_prompt, user_message, max_tokens=16000,
+    # Full daily brief: strong model, 24k output budget — 16k was occasionally
+    # too small for the full JSON payload, truncating it into unparseable JSON
+    # and failing all 3 workflow retries (Jul 13 morning outage).
+    raw  = call_api(system_prompt, user_message, max_tokens=24000,
                     model="claude-sonnet-4-6", max_searches=10)
     data = extract_json(raw)
     validate_close(data)
