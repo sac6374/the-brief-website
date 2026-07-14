@@ -411,16 +411,21 @@ def call_api(system_prompt: str, user_message: str, max_tokens: int = 8000,
 
     client = anthropic.Anthropic(api_key=api_key)
 
-    print(f"Calling Anthropic API ({model}, max {max_searches} searches)...")
+    print(f"Calling Anthropic API ({model}, max {max_searches} searches, streaming)...")
 
     try:
-        response = client.messages.create(
+        # Streaming is REQUIRED: non-streaming requests with max_tokens above
+        # ~21k make the SDK raise "streaming required" instantly (this broke
+        # the Jul 14 morning run when the budget was raised to 24k). Streaming
+        # also removes the long-request timeout risk entirely.
+        with client.messages.stream(
             model=model,
             max_tokens=max_tokens,
             system=system_prompt,
             tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": max_searches}],
             messages=[{"role": "user", "content": user_message}],
-        )
+        ) as stream:
+            response = stream.get_final_message()
     except anthropic.APIConnectionError as e:
         print(f"ERROR: Could not connect to Anthropic API: {e}")
         sys.exit(1)
