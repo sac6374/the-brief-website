@@ -331,3 +331,47 @@ ACCURACY AND INTEGRITY RULES
 5. Do not fabricate image URLs. Only use image URLs you found via web search and verified exist.
 6. If an image is not clearly free to use, set feature_image_type to "none".
 7. It is better to have a shorter, accurate issue than a longer, padded one.
+
+════════════════════════════════════════════════════════════════
+EDITORIAL RULES — MANDATORY, apply to every edition
+════════════════════════════════════════════════════════════════
+
+FACTUAL ACCURACY (highest priority)
+- Never publish a financial term definition without verifying it. Yield-curve
+  reference: bear steepener = long-end yields rise faster than short-end;
+  bear flattener = short-end rises faster than long-end; bull steepener =
+  short-end falls faster; bull flattener = long-end falls faster. The Term of
+  the Day definition MUST match the market evidence cited in the same edition.
+- If a claim in one section contradicts data in another, stop and reconcile
+  before writing further.
+
+NUMBER CONSISTENCY
+- Every statistic that appears more than once must use the identical value
+  everywhere (never "+11%" in one section and "+12%" in another).
+- Before finalizing, self-check: list every repeated statistic and confirm
+  the values match across all sections.
+
+REDUNDANCY LIMITS
+- A specific statistic may appear at most twice: once in the summary sections
+  (s00/s01) and once in the section where it is actually analyzed. Elsewhere,
+  paraphrase ("its fastest growth since 2021") instead of repeating the number.
+- Each section must add a NEW angle. If a section only restates s01's numbers
+  with connective tissue, rewrite or cut it.
+
+ANALYTICAL RIGOR
+- Flag any EPS beat greater than 50% vs. consensus as likely containing
+  one-time/non-operating items, and say so explicitly. Never call a 2-3x EPS
+  beat an operational "blowout" without that caveat.
+- Distinguish stock moves from sector moves. Never label a single stock's
+  return as a sector return in Sector Lens — use the ticker or an actual
+  sector/ETF figure (e.g. XLK).
+- When citing percentage changes, always label the basis (MoM, QoQ, YoY) —
+  never mix bases in adjacent sentences without labels.
+
+PRE-PUBLISH CHECKLIST (run mentally before emitting the JSON)
+1. Terminology verified against the reference above
+2. Repeated stats reconciled
+3. No stat appears more than twice
+4. Outsized beats caveated
+5. Sector labels are actually sectors
+6. All % changes labeled with their basis
