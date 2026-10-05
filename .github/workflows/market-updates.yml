@@ -3,17 +3,28 @@ name: Market Updates
 # Each cron maps 1-to-1 to an update type — no time-window checks in Python.
 # GitHub Actions crons can fire hours late; explicit --type bypasses that.
 #
-#   0 12 * * 1-5  → morning    (08:00 EDT) — FULL DAILY BRIEF (flagship issue)
-#   0 16 * * 1-5  → midday     (12:00 EDT) — short update
-#   15 20 * * 1-5 → close      (16:15 EDT) — short update
-#   30 22 * * 1-5 → afterhours (18:30 EDT) — conditional short update
+#   08:37 ET → morning    — FULL DAILY BRIEF (flagship issue)
+#                           after the 08:30 ET macro print, before the 09:30 open
+#   12:07 ET → midday     — short update
+#   16:22 ET → close      — short update (after the closing bell)
+#   18:37 ET → afterhours — conditional short update
 
 on:
   schedule:
-    - cron: "0 12 * * 1-5"
-    - cron: "0 16 * * 1-5"
-    - cron: "15 20 * * 1-5"
-    - cron: "30 22 * * 1-5"
+    # Odd minutes on purpose: :00/:15/:30 are the most contended slots on
+    # GitHub's shared scheduler and were running 3-5 h late. Each slot is
+    # paired — one cron tuned for EDT, one for EST — so the correct one lands
+    # at the right ET hour year-round. The off-season cron of each pair stands
+    # down via the ET floor in generate_brief.py; the on-season one publishes,
+    # and the skip-if-already-published guard no-ops the leftover.
+    - cron: "37 12 * * 1-5"   # morning    08:37 EDT
+    - cron: "37 13 * * 1-5"   # morning    08:37 EST
+    - cron: "7 16 * * 1-5"    # midday     12:07 EDT
+    - cron: "7 17 * * 1-5"    # midday     12:07 EST
+    - cron: "22 20 * * 1-5"   # close      16:22 EDT
+    - cron: "22 21 * * 1-5"   # close      16:22 EST
+    - cron: "37 22 * * 1-5"   # afterhours 18:37 EDT
+    - cron: "37 23 * * 1-5"   # afterhours 18:37 EST
 
   workflow_dispatch:
     inputs:
@@ -57,11 +68,11 @@ jobs:
             TRIGGER="manual"
           else
             case "${{ github.event.schedule }}" in
-              "0 12 * * 1-5")  TYPE="morning" ;;
-              "0 16 * * 1-5")  TYPE="midday" ;;
-              "15 20 * * 1-5") TYPE="close" ;;
-              "30 22 * * 1-5") TYPE="afterhours" ;;
-              *)               TYPE="morning" ;;
+              "37 12 * * 1-5"|"37 13 * * 1-5")  TYPE="morning" ;;
+              "7 16 * * 1-5"|"7 17 * * 1-5")    TYPE="midday" ;;
+              "22 20 * * 1-5"|"22 21 * * 1-5")  TYPE="close" ;;
+              "37 22 * * 1-5"|"37 23 * * 1-5")  TYPE="afterhours" ;;
+              *)                                TYPE="morning" ;;
             esac
             TRIGGER="scheduled"
 

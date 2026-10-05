@@ -59,6 +59,20 @@ ET = pytz.timezone("America/New_York")
 # ── Update type config ─────────────────────────────────────────────────────────
 UPDATE_TYPES = ["morning", "midday", "close", "afterhours", "breaking", "auto"]
 
+# Earliest ET time (minutes past midnight) a scheduled run may publish each type.
+# Every slot has an EDT-tuned and an EST-tuned cron; the floor makes the
+# off-season one stand down instead of publishing an hour early.
+#   morning    08:35 — after the 08:30 ET macro print, ~55 min before the open
+#   midday     11:55 — genuinely midday
+#   close      16:05 — after the 16:00 closing bell
+#   afterhours 18:15 — after the post-close earnings wave
+EARLIEST_ET = {
+    "morning":    8 * 60 + 35,
+    "midday":    11 * 60 + 55,
+    "close":     16 * 60 + 5,
+    "afterhours": 18 * 60 + 15,
+}
+
 TYPE_LABELS = {
     "morning":    "Morning Brief",
     "midday":     "Midday Update",
@@ -1633,6 +1647,29 @@ def main() -> None:
         print(f"[manual] Explicit type requested: {update_type} — skipping time-window check")
 
     print(f"  Selected type:     {update_type}")
+
+    # ── Earliest-publish floor (scheduled runs only) ──────────────────────────
+    # Each slot has two crons — one tuned for EDT, one for EST — so the right
+    # one lands at the right ET hour year-round. The floor makes the off-season
+    # cron wait instead of publishing an hour early (e.g. a morning brief at
+    # 7:37 AM that would miss the 8:30 ET macro print).
+    #
+    # This is a FLOOR, never a window: a run can only ever be LATE in ET, and
+    # late runs always pass. It can never strand a brief the way the old
+    # time-window logic did.
+    if trigger == "scheduled":
+        floor_min = EARLIEST_ET.get(update_type)
+        if floor_min is not None:
+            now_min = et_now.hour * 60 + et_now.minute
+            if now_min < floor_min:
+                fh, fm = divmod(floor_min, 60)
+                print(f"[floor] {et_now.strftime('%H:%M ET')} is before the "
+                      f"{fh:02d}:{fm:02d} ET floor for '{update_type}' — this is the "
+                      f"off-season cron for this slot. Exiting cleanly; the paired "
+                      f"cron one hour from now will publish.")
+                sys.exit(0)
+            print(f"[floor] {et_now.strftime('%H:%M ET')} passes the "
+                  f"{floor_min // 60:02d}:{floor_min % 60:02d} ET floor for '{update_type}'.")
 
     BRIEFS_DIR.mkdir(exist_ok=True)
     BREAKING_DIR.mkdir(exist_ok=True)
